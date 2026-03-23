@@ -1,41 +1,129 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+# ═══════════════════════════════════════════════════════════════
+#  FOLIA — Root .gitignore
+#  Covers both /frontend (Next.js) and /backend (FastAPI)
+# ═══════════════════════════════════════════════════════════════
 
-# dependencies
-/node_modules
-/.pnp
-.pnp.*
-.yarn/*
-!.yarn/patches
-!.yarn/plugins
-!.yarn/releases
-!.yarn/versions
+# ─── Environment files (NEVER commit these) ─────────────────────
+.env
+.env.local
+.env.development
+.env.development.local
+.env.test
+.env.test.local
+.env.production
+.env.production.local
+.env.*.local
 
-# testing
-/coverage
+# ─── Python / Backend ────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+*.pyd
+.Python
+*.pyc
 
-# next.js
-/.next/
-/out/
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+backend/venv/
+backend/.venv/
 
-# production
-/build
+# Python package build artifacts
+*.egg-info/
+*.egg
+dist/
+build/
+*.whl
+.installed.cfg
+pip-selfcheck.json
 
-# misc
-.DS_Store
-*.pem
+# pytest
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+nosetests.xml
+coverage.xml
+*.cover
 
-# debug
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Jupyter notebooks
+.ipynb_checkpoints
+
+# ─── Node.js / Frontend ──────────────────────────────────────────
+node_modules/
+frontend/node_modules/
+
+# Next.js build output
+.next/
+frontend/.next/
+out/
+frontend/out/
+
+# Next.js cache
+.swc/
+frontend/.swc/
+
+# Vercel
+.vercel
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# npm/yarn/pnpm
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
 
-# env files (can opt-in for committing if needed)
-.env*
+# ─── IDEs and editors ────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+desktop.ini
 
-# vercel
-.vercel
+# JetBrains
+*.iml
+.idea/
 
-# typescript
-*.tsbuildinfo
-next-env.d.ts
+# ─── OS ──────────────────────────────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# ─── Logs ────────────────────────────────────────────────────────
+logs/
+*.log
+npm-debug.log*
+
+# ─── Uploads / user data (never commit) ─────────────────────────
+backend/knowledge_base/docs/*.pdf
+uploads/
+user-data/
+
+# ─── Misc ────────────────────────────────────────────────────────
+*.zip
+*.tar.gz
+.cache/
+tmp/
+temp/
