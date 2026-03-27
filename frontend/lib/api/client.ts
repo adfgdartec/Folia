@@ -139,7 +139,7 @@ export const taxApi = {
 }
 
 export const advisorApi = {
-    chat: (body: { message: string; dna: FinancialMetadata; history: ChatMessage[]; session_id?: string }) => post<{ content: string; citations: unknown[]; session_id: string }>('/api/advisor', body),
+    chat: (body: { message: string; metadata: FinancialMetadata; history: ChatMessage[]; session_id?: string }) => post<{ content: string; citations: unknown[]; session_id: string }>('/api/advisor', body),
     stream: async (
         body: {message: string; metadata: FinancialMetadata; history: ChatMessage[]; session_id?: string }, 
         onChunk: (text: string) => void, 

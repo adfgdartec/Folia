@@ -57,7 +57,7 @@ export const useFoliaStore = create<FoliaStore>()(
            name: 'folia-store',
             partialize: (state) => ({
                 userId: state.userId,
-                dna: state.dna,
+                metadata: state.metadata,
                 isOnboarded: state.isOnboarded,
             }), 
         }

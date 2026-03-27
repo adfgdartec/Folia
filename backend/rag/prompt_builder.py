@@ -51,7 +51,7 @@ def build_advisor_prompt(
         context_parts.append(f"[{source}]\n{content}")
     context = "\n\n---\n\n".join(context_parts)
 
-    dna_summary = {
+    metadata_summary = {
         "age": metadata.age,
         "life_stage": metadata.life_stage.value,
         "annual_income": f"${metadata.annual_income:,.0f}",
@@ -71,7 +71,7 @@ def build_advisor_prompt(
         literacy_instruction=literacy_instruction
     )
 
-    system_content += f"\n\nUSER FINANCIAL PROFILE:\n{json.dumps(dna_summary, indent=2)}"
+    system_content += f"\n\nUSER FINANCIAL PROFILE:\n{json.dumps(metadata_summary, indent=2)}"
     system_content += f"\n\nKNOWLEDGE BASE:\n{context}"
 
     messages = [{"role": "system", "content": system_content}]

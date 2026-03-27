@@ -15,7 +15,7 @@ export default function DashboardPage() {
   const { data: dash, loading, refetch } = useDashboard();
   const { data: history } = useNetWorthHistory(12);
   const { data: health } = useHealthScore();
-  const dna = useFoliaStore((s) => s.dna);
+  const metadata = useFoliaStore((s) => s.metadata);
 
   const nw = dash?.net_worth?.net_worth ?? 0;
   const assets = dash?.net_worth?.total_assets ?? 0;
@@ -24,8 +24,8 @@ export default function DashboardPage() {
   const hour = new Date().getHours();
   const greet =
     hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
-  const stageColor = dna
-    ? (LIFE_STAGE_COLORS[dna.life_stage] ?? "var(--green)")
+  const stageColor = metadata
+    ? (LIFE_STAGE_COLORS[metadata.life_stage] ?? "var(--green)")
     : "var(--green)";
 
   if (loading) return <Skeleton />;
@@ -74,11 +74,11 @@ export default function DashboardPage() {
           >
             {greet}
           </h1>
-          {dna && (
+          {metadata && (
             <p style={{ fontSize: "0.8rem", color: "var(--t3)", marginTop: 4 }}>
-              {dna.life_stage.charAt(0).toUpperCase() + dna.life_stage.slice(1)}{" "}
-              stage · Age {dna.age} ·{" "}
-              {dna.income_type.replace("_", "-").toUpperCase()}
+              {metadata.life_stage.charAt(0).toUpperCase() + metadata.life_stage.slice(1)}{" "}
+              stage · Age {metadata.age} ·{" "}
+              {metadata.income_type.replace("_", "-").toUpperCase()}
             </p>
           )}
         </div>
@@ -345,21 +345,21 @@ export default function DashboardPage() {
         {[
           {
             label: "Monthly income",
-            value: dna ? formatCurrency(dna.annual_income / 12, true) : "—",
+            value: metadata ? formatCurrency(metadata.annual_income / 12, true) : "—",
             color: "var(--green)",
             sub: "gross",
           },
           {
             label: "Monthly expenses",
-            value: dna ? formatCurrency(dna.monthly_expenses, true) : "—",
+            value: metadata ? formatCurrency(metadata.monthly_expenses, true) : "—",
             color: "var(--t1)",
             sub: "estimated",
           },
           {
             label: "Emergency fund",
-            value: dna ? `${dna.emergency_fund_months} mo` : "—",
+            value: metadata ? `${metadata.emergency_fund_months} mo` : "—",
             color:
-              dna && dna.emergency_fund_months >= 3
+              metadata && metadata.emergency_fund_months >= 3
                 ? "var(--green)"
                 : "var(--amber)",
             sub: "of expenses",

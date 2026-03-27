@@ -9,7 +9,7 @@ import {
   LITERACY_LABELS,
 } from "@/lib/utils";
 import type {
-  FinancialDNA,
+  FinancialMetadata,
   IncomeType,
   FilingStatus,
   LiteracyLevel,
@@ -94,8 +94,8 @@ const US_STATES = [
 
 export default function OnboardingPage() {
   const router = useRouter();
-  const { setDNA, setProfile, userId } = useFoliaStore((s) => ({
-    setDNA: s.setDNA,
+  const { setMetadata, setProfile, userId } = useFoliaStore((s) => ({
+    setMetadata: s.setMetadata,
     setProfile: s.setProfile,
     userId: s.userId,
   }));
@@ -132,7 +132,7 @@ export default function OnboardingPage() {
         ...form.goal_names,
         ...(form.custom_goal ? [form.custom_goal] : []),
       ];
-      const dna: FinancialDNA = {
+      const metadata: FinancialMetadata = {
         user_id: userId,
         age: form.age,
         life_stage,
@@ -156,9 +156,9 @@ export default function OnboardingPage() {
           is_achieved: false,
         })),
       };
-      await usersApi.upsertDNA(userId, dna);
+      await usersApi.upsertMetadata(userId, metadata);
       await usersApi.updateProfile(userId, { onboarding_done: true });
-      setDNA(dna);
+      setMetadata(metadata);
       router.push("/dashboard");
     } catch (e) {
       console.error(e);
@@ -300,7 +300,7 @@ export default function OnboardingPage() {
                   marginBottom: "1.25rem",
                 }}
               >
-                We'll build your Financial DNA in 7 quick steps — a personalized
+                We'll build your Financial metadata in 7 quick steps — a personalized
                 profile that makes every recommendation specific to your life,
                 age, and goals.
               </p>
@@ -828,7 +828,7 @@ export default function OnboardingPage() {
                   letterSpacing: "-0.02em",
                 }}
               >
-                Your Financial DNA is ready
+                Your Financial metadata is ready
               </h2>
               <div
                 style={{

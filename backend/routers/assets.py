@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 from typing import Optional
 from core.database import get_supabase
+from core.cache import cache_get, cache_set, cache_delete, make_key
 import uuid
 
 router = APIRouter()
@@ -30,21 +31,21 @@ VALID_TYPES = {
 
 @router.get("/{user_id}")
 async def list_assets(user_id: str):
+    key = make_key("assets", user_id)
+    cached = await cache_get(key)
+    if cached:
+        return cached
+    
     supabase = get_supabase()
-    result = supabase.table("assets").select("*").eq("user_id", user_id).order("value", desc=True).execute()
-    assets = result.data or []
-    total = sum(a["value"] for a in assets)
-    by_type: dict[str, float] = {}
+    result = supabase.table("assets").select("id, name, type, type, value, institution, update_at").eq("user_id", user_id).order("value", desc=True).execute()
     
-    for a in assets:
-        by_type[a["type"]] = by_type.get(a["type"], 0) + a["value"]
-    
-    return {
-        "assets": assets,
-        "total": round(total, 2),
-        "by_type": {k: round(v, 2) for k, v in by_type.items()},
-        "count": len(assets),
+    data = {
+        "assets": result.data or [],
+        "total": sum(a["value"] for a in (result.data or [])),
+        "by_type": _group_by_type(result.data or []),
     }
+    await cache_set(key, data, ttl=120)
+    return data
 
 @router.post("")
 async def create_asset(body: AssetCreate):
@@ -55,6 +56,7 @@ async def create_asset(body: AssetCreate):
     result = supabase.table("assets").insert(payload).execute()
     if not result.data:
         raise HTTPException(status_code=500, detail="Failed to create asset")
+    await cache_delete(make_key("assets", user_id))
     return result.data[0]
 
 @router.patch("/{asset_id}")

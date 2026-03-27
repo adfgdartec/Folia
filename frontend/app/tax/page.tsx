@@ -14,7 +14,7 @@ import {
 type TaxTab = "calculator" | "brackets" | "strategies" | "reference";
 
 export default function TaxPage() {
-  const dna = useFoliaStore((s) => s.dna);
+  const metadata = useFoliaStore((s) => s.metadata);
   const [tab, setTab] = useState<TaxTab>("calculator");
 
   return (
@@ -55,9 +55,9 @@ export default function TaxPage() {
           </button>
         ))}
       </div>
-      {tab === "calculator" && <TaxCalculatorTab dna={dna} />}
-      {tab === "brackets" && <BracketsTab dna={dna} />}
-      {tab === "strategies" && <StrategiesTab dna={dna} />}
+      {tab === "calculator" && <TaxCalculatorTab metadata={metadata} />}
+      {tab === "brackets" && <BracketsTab metadata={metadata} />}
+      {tab === "strategies" && <StrategiesTab metadata={metadata} />}
       {tab === "reference" && <ReferenceTab />}
     </div>
   );
@@ -65,7 +65,7 @@ export default function TaxPage() {
 
 // ─── CALCULATOR ───────────────────────────────────────────────────────────────
 
-function TaxCalculatorTab({ dna }: { dna: any }) {
+function TaxCalculatorTab({ metadata }: { metadata: any }) {
   const [result, setResult] = useState<TaxResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
@@ -81,11 +81,11 @@ function TaxCalculatorTab({ dna }: { dna: any }) {
     setForm((p) => ({ ...p, [k]: v }));
 
   const calc = async () => {
-    if (!dna) return;
+    if (!metadata) return;
     setLoading(true);
     try {
       const res = await taxApi.calculate({
-        dna,
+        metadata,
         ytd_income: form.ytd_income ? +form.ytd_income : undefined,
         ytd_withholding: form.ytd_withholding
           ? +form.ytd_withholding
@@ -103,9 +103,9 @@ function TaxCalculatorTab({ dna }: { dna: any }) {
   };
 
   const isFreelance =
-    dna?.income_type === "freelance" || dna?.income_type === "mixed";
+    metadata?.income_type === "freelance" || metadata?.income_type === "mixed";
 
-  if (!dna)
+  if (!metadata)
     return (
       <div className="empty">
         <div className="empty-icon">◧</div>
@@ -142,7 +142,7 @@ function TaxCalculatorTab({ dna }: { dna: any }) {
                 className="input"
                 value={form.ytd_income}
                 onChange={(e) => setF("ytd_income", e.target.value)}
-                placeholder={`${dna?.annual_income}`}
+                placeholder={`${metadata?.annual_income}`}
               />
             </div>
           </div>
@@ -464,7 +464,7 @@ function TaxCalculatorTab({ dna }: { dna: any }) {
 
 // ─── BRACKETS ─────────────────────────────────────────────────────────────────
 
-function BracketsTab({ dna }: { dna: any }) {
+function BracketsTab({ metadata }: { metadata: any }) {
   const BRACKETS_SINGLE_2024 = [
     { rate: 10, min: 0, max: 11600 },
     { rate: 12, min: 11600, max: 47150 },
@@ -475,10 +475,10 @@ function BracketsTab({ dna }: { dna: any }) {
     { rate: 37, min: 609350, max: Infinity },
   ];
 
-  const income = dna?.annual_income ?? 0;
+  const income = metadata?.annual_income ?? 0;
   const std_ded =
     STANDARD_DEDUCTIONS_2024[
-      (dna?.filing_status as keyof typeof STANDARD_DEDUCTIONS_2024) ?? "single"
+      (metadata?.filing_status as keyof typeof STANDARD_DEDUCTIONS_2024) ?? "single"
     ];
   const taxable = Math.max(0, income - std_ded);
 
@@ -567,9 +567,9 @@ function BracketsTab({ dna }: { dna: any }) {
 
 // ─── STRATEGIES ───────────────────────────────────────────────────────────────
 
-function StrategiesTab({ dna }: { dna: any }) {
-  const income = dna?.annual_income ?? 0;
-  const age = dna?.age ?? 30;
+function StrategiesTab({ metadata }: { metadata: any }) {
+  const income = metadata?.annual_income ?? 0;
+  const age = metadata?.age ?? 30;
   const catchup = age >= 50;
   const superCatchup = age >= 60 && age <= 63;
 
@@ -620,10 +620,10 @@ function StrategiesTab({ dna }: { dna: any }) {
       desc: "Auto-applied — no itemizing required for most filers",
       limit:
         STANDARD_DEDUCTIONS_2024[
-          (dna?.filing_status as keyof typeof STANDARD_DEDUCTIONS_2024) ??
+          (metadata?.filing_status as keyof typeof STANDARD_DEDUCTIONS_2024) ??
             "single"
         ],
-      label: dna?.filing_status?.replace(/_/g, " ") ?? "single",
+      label: metadata?.filing_status?.replace(/_/g, " ") ?? "single",
       savings: null,
     },
   ];

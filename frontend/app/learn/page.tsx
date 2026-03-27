@@ -269,7 +269,7 @@ const DIFF_BADGES: Record<string, string> = {
 
 export default function LearnPage() {
   const userId = useFoliaStore((s) => s.userId)!;
-  const dna = useFoliaStore((s) => s.dna);
+  const metadata = useFoliaStore((s) => s.metadata);
   const { data: progress, refetch } = useEducationProgress();
   const [tab, setTab] = useState<LearnTab>("curriculum");
   const [selected, setSelected] = useState<EducationTrack | null>(null);
@@ -307,7 +307,7 @@ export default function LearnPage() {
     try {
       const r = await glossaryApi.define(
         glossTerm.trim(),
-        dna?.literacy_level ?? "beginner",
+        metadata?.literacy_level ?? "beginner",
       );
       setGlossResult(r);
     } finally {
