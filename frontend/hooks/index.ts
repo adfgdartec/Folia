@@ -198,7 +198,7 @@ export function useAdvisorStream() {
     const { advisorApi } = await import('@/lib/api/client')
     try {
         await advisorApi.stream(
-            { message, dna, history, session_id: sessionId },
+            { message, metadata, history, session_id: sessionId },
             (chunk) => setContent((prev) => prev + chunk),
             (cits) => setCitations(cits as unknown[]),
             () => setStreaming(false),

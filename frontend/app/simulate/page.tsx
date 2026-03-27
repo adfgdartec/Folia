@@ -64,7 +64,7 @@ const LIFE_EVENTS = [
 ];
 
 export default function SimulatePage() {
-  const dna = useFoliaStore((s) => s.dna);
+  const metadata = useFoliaStore((s) => s.metadata);
   const { success } = useToast();
   const [mode, setMode] = useState<Mode>("fork");
   const [result, setResult] = useState<SimulationResult | null>(null);
@@ -117,7 +117,7 @@ export default function SimulatePage() {
   ];
 
   const run = async () => {
-    if (!dna) return;
+    if (!metadata) return;
     setLoading(true);
     setResult(null);
     try {
@@ -171,7 +171,7 @@ export default function SimulatePage() {
       }
 
       const res = await simulateApi.run({
-        dna,
+        metadata,
         horizon_years: horizon,
         scenario_a: scenAFinal,
         scenario_b: scenBFinal,
@@ -185,12 +185,12 @@ export default function SimulatePage() {
   };
 
   const contribute = async () => {
-    if (!dna || !result) return;
+    if (!metadata || !result) return;
     try {
       await communityApi.contribute({
-        life_stage: dna.life_stage,
-        age_bucket: getAgeBucket(dna.age),
-        income_bucket: getIncomeBucket(dna.annual_income),
+        life_stage: metadata.life_stage,
+        age_bucket: getAgeBucket(metadata.age),
+        income_bucket: getIncomeBucket(metadata.annual_income),
         simulation_type: mode,
         scenario_data: {
           horizon_years: horizon,
@@ -209,7 +209,7 @@ export default function SimulatePage() {
     } catch {}
   };
 
-  if (!dna) {
+  if (!metadata) {
     return (
       <div className="empty" style={{ paddingTop: "6rem" }}>
         <div className="empty-icon">⟁</div>

@@ -14,7 +14,7 @@ const STARTERS = [
 ];
 
 export default function AdvisorPage() {
-  const dna = useFoliaStore((s) => s.dna);
+  const metadata = useFoliaStore((s) => s.metadata);
   const { send, streaming, content, citations, reset } = useAdvisorStream();
   const [history, setHistory] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
@@ -32,7 +32,7 @@ export default function AdvisorPage() {
 
   const sendMessage = useCallback(
     async (text: string) => {
-      if (!dna || !text.trim() || streaming) return;
+      if (!metadata || !text.trim() || streaming) return;
       const userMsg: ChatMessage = { role: "user", content: text.trim() };
       setHistory((h) => [...h, userMsg]);
       setInput("");
@@ -40,10 +40,10 @@ export default function AdvisorPage() {
       setStreamDone(false);
       setAllCitations([]);
 
-      await send(text.trim(), dna, history.slice(-12), sessionId);
+      await send(text.trim(), metadata, history.slice(-12), sessionId);
       setStreamDone(true);
     },
-    [dna, streaming, history, sessionId, send, reset],
+    [metadata, streaming, history, sessionId, send, reset],
   );
 
   // Append assistant message after stream ends
@@ -164,7 +164,7 @@ export default function AdvisorPage() {
               paddingTop: "1rem",
             }}
           >
-            {dna && (
+            {metadata && (
               <div style={{ textAlign: "center" }}>
                 <div
                   style={{
@@ -173,7 +173,7 @@ export default function AdvisorPage() {
                     marginBottom: "0.375rem",
                   }}
                 >
-                  Financial DNA loaded
+                  Financial metadata loaded
                 </div>
                 <div
                   style={{
@@ -184,10 +184,10 @@ export default function AdvisorPage() {
                   }}
                 >
                   {[
-                    `Age ${dna.age}`,
-                    `${dna.life_stage} stage`,
-                    `${dna.income_type.replace("_", "-")} income`,
-                    dna.literacy_level,
+                    `Age ${metadata.age}`,
+                    `${metadata.life_stage} stage`,
+                    `${metadata.income_type.replace("_", "-")} income`,
+                    metadata.literacy_level,
                   ].map((tag) => (
                     <span key={tag} className="tag">
                       {tag}
@@ -208,21 +208,21 @@ export default function AdvisorPage() {
                 <button
                   key={q}
                   onClick={() => sendMessage(q)}
-                  disabled={!dna}
+                  disabled={!metadata}
                   style={{
                     background: "var(--bg-3)",
                     border: "1px solid var(--b1)",
                     borderRadius: "var(--r)",
                     padding: "0.875rem",
                     textAlign: "left",
-                    cursor: dna ? "pointer" : "not-allowed",
+                    cursor: metadata ? "pointer" : "not-allowed",
                     transition: "all 0.12s",
                     display: "flex",
                     flexDirection: "column",
                     gap: "0.375rem",
                   }}
                   onMouseEnter={(e) => {
-                    if (dna) {
+                    if (metadata) {
                       (e.currentTarget as HTMLElement).style.borderColor =
                         "var(--b2)";
                       (e.currentTarget as HTMLElement).style.background =
@@ -344,7 +344,7 @@ export default function AdvisorPage() {
                 overflow: "hidden",
               }}
               placeholder={
-                dna
+                metadata
                   ? "Ask anything about your finances..."
                   : "Complete onboarding first"
               }
@@ -354,7 +354,7 @@ export default function AdvisorPage() {
                 autoResize(e.target);
               }}
               onKeyDown={handleKey}
-              disabled={!dna || streaming}
+              disabled={!metadata || streaming}
               rows={1}
             />
           </div>
@@ -362,7 +362,7 @@ export default function AdvisorPage() {
             className="btn btn-primary"
             style={{ height: 44, minWidth: 72, flexShrink: 0 }}
             onClick={() => sendMessage(input)}
-            disabled={!dna || streaming || !input.trim()}
+            disabled={!metadata || streaming || !input.trim()}
           >
             {streaming ? (
               <div

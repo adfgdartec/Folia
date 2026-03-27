@@ -54,9 +54,9 @@ async def _stream_advisor(req: AdvisorRequest):
     try:
         await upsert_rows("advisor_sessions", [{
             "session_id": session_id,
-            "user_id": req.dna.user_id,
+            "user_id": req.metadata.user_id,
             "last_message": req.message[:500],
-            "dna_snapshot": req.dna.model_dump(),
+            "metadata_snapshot": req.metadata.model_dump(),
         }], on_conflict="session_id")
     except Exception:
         pass  

@@ -47,9 +47,9 @@ const SIM_LABELS: Record<string, string> = {
 };
 
 export default function CommunityPage() {
-  const dna = useFoliaStore((s) => s.dna);
+  const metadata = useFoliaStore((s) => s.metadata);
   const { success, error: te } = useToast();
-  const [stage, setStage] = useState(dna?.life_stage ?? "build");
+  const [stage, setStage] = useState(metadata?.life_stage ?? "build");
   const [templates, setTemplates] = useState<Template[]>([]);
   const [benchmarks, setBenchmarks] = useState<Benchmarks | null>(null);
   const [loading, setLoading] = useState(false);
@@ -226,7 +226,7 @@ export default function CommunityPage() {
                   {stage} stage · {benchmarks?.sample_size ?? 0} data points
                 </div>
               </div>
-              {dna && (
+              {metadata && (
                 <div style={{ textAlign: "right" }}>
                   <div
                     style={{

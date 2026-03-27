@@ -89,7 +89,7 @@ export default function SettingsPage() {
           Settings
         </h1>
         <p style={{ fontSize: "0.8rem", color: "var(--t3)", marginTop: 4 }}>
-          Update your Financial DNA to keep all insights accurate
+          Update your Financial metadata to keep all insights accurate
         </p>
       </div>
       <div className="tabs" style={{ maxWidth: 320 }}>
@@ -97,7 +97,7 @@ export default function SettingsPage() {
           className={`tab ${tab === "profile" ? "active" : ""}`}
           onClick={() => setTab("profile")}
         >
-          Financial DNA
+          Financial metadata
         </button>
         <button
           className={`tab ${tab === "bills" ? "active" : ""}`}
@@ -113,41 +113,41 @@ export default function SettingsPage() {
 }
 
 function ProfileTab() {
-  const { dna, setDNA, userId } = useFoliaStore((s) => ({
-    dna: s.dna,
-    setDNA: s.setDNA,
+  const { metadata, setMetadata, userId } = useFoliaStore((s) => ({
+    metadata: s.metadata,
+    setMetadata: s.setMetadata,
     userId: s.userId,
   }));
   const { success, error: te } = useToast();
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [form, setForm] = useState({
-    age: dna?.age ?? 25,
-    income_type: (dna?.income_type ?? "w2") as IncomeType,
-    annual_income: dna?.annual_income ?? 50000,
-    filing_status: (dna?.filing_status ?? "single") as FilingStatus,
-    state: dna?.state ?? "",
-    monthly_expenses: dna?.monthly_expenses ?? 2500,
-    emergency_fund_months: dna?.emergency_fund_months ?? 0,
-    literacy_level: (dna?.literacy_level ?? "beginner") as LiteracyLevel,
+    age: metadata?.age ?? 25,
+    income_type: (metadata?.income_type ?? "w2") as IncomeType,
+    annual_income: metadata?.annual_income ?? 50000,
+    filing_status: (metadata?.filing_status ?? "single") as FilingStatus,
+    state: metadata?.state ?? "",
+    monthly_expenses: metadata?.monthly_expenses ?? 2500,
+    emergency_fund_months: metadata?.emergency_fund_months ?? 0,
+    literacy_level: (metadata?.literacy_level ?? "beginner") as LiteracyLevel,
   });
   const set = (k: keyof typeof form, v: unknown) =>
     setForm((p) => ({ ...p, [k]: v }));
 
   const save = async () => {
-    if (!userId || !dna) return;
+    if (!userId || !metadata) return;
     setSaving(true);
     try {
       const updated = {
-        ...dna,
+        ...metadata,
         ...form,
         life_stage: getLifeStageFromAge(form.age),
       };
-      await usersApi.upsertDNA(userId, updated);
-      setDNA(updated);
+      await usersApi.upsertMetadata(userId, updated);
+      setMetadata(updated);
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
-      success("Financial DNA updated");
+      success("Financial metadata updated");
     } catch (e: any) {
       te(e.message);
     } finally {
@@ -162,7 +162,7 @@ function ProfileTab() {
     >
       <div className="card">
         <div className="section-title" style={{ marginBottom: "1.5rem" }}>
-          Financial DNA
+          Financial metadata
         </div>
         <div
           style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}

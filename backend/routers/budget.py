@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 from pydantic import BaseModel
-from models.schemas import BudgetAnalysis, Transaction, FinancialDNA
+from models.schemas import BudgetAnalysis, Transaction, FinancialMetadata
 from core.clients import groq_client
 from core.config import get_settings
 from collections import defaultdict
@@ -12,7 +12,7 @@ settings = get_settings()
 
 class BudgetRequest(BaseModel):
     transactions: list[Transaction]
-    dna: FinancialDNA
+    metadata: FinancialMetadata
     previous_month_expenses: float = 0.0
 
 
@@ -66,7 +66,7 @@ async def analyze_budget(req: BudgetRequest):
                         "content": (
                             "You are a budget coach. Give exactly 3 brief, specific insights "
                             "about this budget. Each insight is one sentence with a number. "
-                            f"User age: {req.dna.age}, literacy: {req.dna.literacy_level.value}. "
+                            f"User age: {req.metadata.age}, literacy: {req.metadata.literacy_level.value}. "
                             "Return as a JSON array of 3 strings."
                         ),
                     }, 

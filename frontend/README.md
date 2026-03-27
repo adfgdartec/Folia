@@ -17,7 +17,7 @@ Next.js 15 frontend for the Folia financial intelligence platform.
 | Route | Description |
 |---|---|
 | `/` | Redirects to onboarding or dashboard |
-| `/onboarding` | 8-step Financial DNA wizard |
+| `/onboarding` | 8-step Financial metadata wizard |
 | `/dashboard` | Home — net worth, health score, alerts, goals |
 | `/finances` | Assets, debts, goals, transactions (full CRUD) |
 | `/simulate` | Scenario simulator — fork, Monte Carlo, life events |
@@ -28,7 +28,7 @@ Next.js 15 frontend for the Folia financial intelligence platform.
 | `/documents` | Document upload and AI intelligence |
 | `/journal` | Decision journal with outcome tracking |
 | `/community` | Anonymized benchmarks and templates |
-| `/settings` | Financial DNA editor and account settings |
+| `/settings` | Financial metadata editor and account settings |
 
 ## Component structure
 

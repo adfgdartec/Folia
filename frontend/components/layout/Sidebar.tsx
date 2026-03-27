@@ -39,13 +39,13 @@ const NAV = [
 
 export function Sidebar() {
   const pathname   = usePathname()
-  const dna        = useFoliaStore((s) => s.dna)
+  const metadata        = useFoliaStore((s) => s.metadata)
   const dashboard  = useFoliaStore((s) => s.dashboard)
   const alertCount = useFoliaStore((s) => s.alertCount)
 
   const nw     = dashboard?.net_worth?.net_worth ?? 0
   const isPos  = nw >= 0
-  const stage  = dna?.life_stage ?? 'launch'
+  const stage  = metadata?.life_stage ?? 'launch'
   const stageColor = LIFE_STAGE_COLORS[stage as keyof typeof LIFE_STAGE_COLORS] ?? '#22d47e'
 
   return (
@@ -86,7 +86,7 @@ export function Sidebar() {
       </div>
 
       {/* Net worth pill */}
-      {dna && (
+      {metadata && (
         <div style={{ padding: '0 0.625rem 1rem' }}>
           <div style={{
             background: 'var(--bg-3)',

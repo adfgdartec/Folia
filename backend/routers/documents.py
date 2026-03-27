@@ -1,6 +1,6 @@
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException
 from fastapi.responses import JSONResponse
-from models.schemas import DocumentResult, DocType, FinancialDNA
+from models.schemas import DocumentResult, DocType, FinancialMetadata
 from core.clients import gemini_model
 from core.database import insert_rows
 from rag.embedder import embed_batch, chunk_text

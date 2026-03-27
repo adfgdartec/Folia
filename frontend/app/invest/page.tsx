@@ -79,7 +79,7 @@ const CRYPTO_COINS = [
 export default function InvestPage() {
   const [tab, setTab] = useState<Tab>("stocks");
   const userId = useFoliaStore((s) => s.userId)!;
-  const dna = useFoliaStore((s) => s.dna);
+  const metadata = useFoliaStore((s) => s.metadata);
 
   const TABS = [
     { id: "stocks" as Tab, label: "Stocks" },
@@ -124,7 +124,7 @@ export default function InvestPage() {
           </button>
         ))}
       </div>
-      {tab === "stocks" && <StocksTab dna={dna} />}
+      {tab === "stocks" && <StocksTab metadata={metadata} />}
       {tab === "etf" && <ETFTab />}
       {tab === "portfolio" && <PortfolioTab userId={userId} />}
       {tab === "macro" && <MacroTab />}
@@ -135,7 +135,7 @@ export default function InvestPage() {
 
 // ─── STOCKS ───────────────────────────────────────────────────────────────────
 
-function StocksTab({ dna }: { dna: any }) {
+function StocksTab({ metadata }: { metadata: any }) {
   const [query, setQuery] = useState("");
   const [searchRes, setSearchRes] = useState<
     { symbol: string; name: string }[]
@@ -162,7 +162,7 @@ function StocksTab({ dna }: { dna: any }) {
     setResult(null);
     setSearchRes([]);
     try {
-      const r = await stocksApi.get(t.toUpperCase(), dna ?? undefined);
+      const r = await stocksApi.get(t.toUpperCase(), metadata ?? undefined);
       setResult(r);
     } catch (e: any) {
       setError(e.message);
@@ -461,12 +461,12 @@ function StocksTab({ dna }: { dna: any }) {
 function ETFTab() {
   const [lookup, setLookup] = useState<StockData | null>(null);
   const [loading, setLoading] = useState<string | null>(null);
-  const dna = useFoliaStore((s) => s.dna);
+  const metadata = useFoliaStore((s) => s.metadata);
 
   const fetch = async (ticker: string) => {
     setLoading(ticker);
     try {
-      const r = await stocksApi.get(ticker, dna ?? undefined);
+      const r = await stocksApi.get(ticker, metadata ?? undefined);
       setLookup(r);
     } catch {
     } finally {
