@@ -1,6 +1,6 @@
 'use client'
 import { useNetWorthHistory } from '@/frontend/hooks'
-import { NetWorthChart } from '@/frontend/components/charts'
+import { NetWorthChart } from '@/components/charts'
 import { formatCurrency } from '@/lib/utils'
 import { useFoliaStore } from '@/store'
 

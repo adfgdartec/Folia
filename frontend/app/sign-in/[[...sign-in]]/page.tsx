@@ -34,7 +34,7 @@ export default function SignInPage() {
         <p style={{ fontSize: '0.825rem', color: 'var(--t3)' }}>Your financial life OS</p>
       </div>
 
-      <SignIn />
+      <SignIn forceRedirectUrl={"/dashboard"} />
     </div>
   )
 }

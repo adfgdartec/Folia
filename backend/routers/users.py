@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from typing import Optional
 from core.database import get_supabase
 from core.config import get_settings
+from models.schemas import FinancialMetadata
 
 router = APIRouter()
 settings = get_settings()
@@ -12,19 +13,6 @@ class ProfileUpdate(BaseModel):
     display_name: Optional[str] = None
     avatar_url: Optional[str] = None
     onboarding_done: Optional[bool] = None
-
-class MetadataUpsert(BaseModel):
-    user_id: str
-    age: int
-    life_stage: int
-    annual_income: float
-    income_type: str
-    filing_status: str = "single"
-    state: Optional[str] = None
-    monthly_expenses: float = 0.0
-    emergency_fund_months: float = 0.0
-    literacy_level: str = "beginner"
-    goals: list = []
     
 
 # Profile Endpoints
@@ -42,9 +30,9 @@ async def update_profile(user_id: str, body: ProfileUpdate):
     updates = {k: v for k, v in body.model_dump().items() if v is not None}
     if not updates:
         raise HTTPException(status_code=400, detail="No fields to update")
-    result = supabase.table("profiles").update(updates).eq("id", user_id).execute()
+    result = supabase.table("profiles").upsert({"id": user_id, **updates}, on_conflict="id").execute()
     if not result.data:
-        raise HTTPException(status_code=404, detail="Profile not found")
+        raise HTTPException(status_code=500, detail="Failed to update profile")
     return result.data[0]
 
 # Metadata Endpoints
@@ -57,10 +45,16 @@ async def get_metadata(user_id: str):
     return result.data
 
 @router.put("/{user_id}/metadata")
-async def upsert_metadata(user_id: str, body: MetadataUpsert):
+async def upsert_metadata(user_id: str, body: FinancialMetadata):
     supabase = get_supabase()
     body.user_id = user_id
     payload = body.model_dump()
+    # Exclude list fields that are stored in separate tables
+    payload.pop('assets', None)
+    payload.pop('debts', None)
+    payload.pop('goals', None)
+    # Exclude fields not in the table
+    payload.pop('has_emergency_fund', None)
     
     result = supabase.table("financial_metadata").upsert(payload, on_conflict="user_id").execute()
     if not result.data:

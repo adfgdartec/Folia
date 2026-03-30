@@ -113,11 +113,9 @@ export default function SettingsPage() {
 }
 
 function ProfileTab() {
-  const { metadata, setMetadata, userId } = useFoliaStore((s) => ({
-    metadata: s.metadata,
-    setMetadata: s.setMetadata,
-    userId: s.userId,
-  }));
+  const metadata = useFoliaStore((s) => s.metadata);
+  const setMetadata = useFoliaStore((s) => s.setMetadata);
+  const userId = useFoliaStore((s) => s.userId);
   const { success, error: te } = useToast();
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);

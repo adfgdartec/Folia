@@ -92,7 +92,6 @@ API is now running at `http://localhost:8000`
 | POST | `/api/advisor/stream` | Streaming RAG chat |
 | POST | `/api/simulate` | Financial scenario simulation |
 | POST | `/api/tax` | Tax calculation |
-| POST | `/api/documents` | Document intelligence (multipart) |
 | POST | `/api/stocks` | Stock data + AI summary |
 | GET  | `/api/stocks/search/{query}` | Stock ticker search |
 | POST | `/api/narrate` | Fast AI narration |

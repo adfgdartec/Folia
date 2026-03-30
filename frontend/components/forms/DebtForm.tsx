@@ -1,9 +1,9 @@
 'use client'
-import { useState } from 'react'
-import { Modal } from '@/frontend/components/ui/Modal'
+import { useState, useEffect } from 'react'
+import { Modal } from '@/components/ui/Modal'
 import { debtsApi } from '@/lib/api/client'
 import { DEBT_TYPE_LABELS } from '@/lib/utils'
-import { useToast } from '@/frontend/components/ui/Toast'
+import { useToast } from '@/components/ui/Toast'
 import { useFoliaStore } from '@/store'
 import type { Debt, DebtType } from '@/types'
 
@@ -29,6 +29,18 @@ export function DebtForm({ open, onClose, onSaved, existing }: Props) {
     lender:          existing?.lender          ?? '',
     due_day:         existing?.due_day         ?? undefined as number | undefined,
   })
+
+  useEffect(() => {
+    setForm({
+      name:            existing?.name            ?? '',
+      balance:         existing?.balance         ?? 0,
+      interest_rate:   existing?.interest_rate   ?? 0,
+      minimum_payment: existing?.minimum_payment ?? 0,
+      type:            (existing?.type           ?? 'credit_card') as DebtType,
+      lender:          existing?.lender          ?? '',
+      due_day:         existing?.due_day         ?? undefined,
+    })
+  }, [existing, open])
 
   const set = (k: keyof typeof form, v: unknown) => setForm((p) => ({ ...p, [k]: v }))
 
@@ -56,12 +68,16 @@ export function DebtForm({ open, onClose, onSaved, existing }: Props) {
       title={existing ? 'Edit debt' : 'Add debt'}
       footer={
         <>
-          <button className="btn btn-secondary" onClick={onClose} disabled={saving}>Cancel</button>
-          <button className="btn btn-primary" onClick={save} disabled={saving || !form.name}>{saving ? 'Saving...' : 'Save'}</button>
+          <button type="button" className="btn btn-secondary" onClick={onClose} disabled={saving}>Cancel</button>
+          <button type="button" className="btn btn-primary" onClick={save} disabled={saving || !form.name}>{saving ? 'Saving...' : 'Save'}</button>
         </>
       }
     >
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <div
+        style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}
+        onClick={(e) => e.stopPropagation()}
+        onMouseDown={(e) => e.stopPropagation()}
+      >
         <div>
           <label className="label">Debt name</label>
           <input className="input" placeholder="e.g. Chase Sapphire card" value={form.name} onChange={(e) => set('name', e.target.value)} />

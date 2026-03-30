@@ -181,6 +181,5 @@ async def send_alert_email(to_email: str, user_name: str, alert_title: str, aler
             "action_label":   action_label or "View in Folia",
             "dashboard_url":  f"{settings.frontend_url}/dashboard",
         },
-        subject_override=f"{ "Alert: " if alert_priority == 'urgent' else "Caution: "} {alert_title} — Folia",
+        subject_override=f"{('Alert: ' if alert_priority == 'urgent' else 'Caution: ')}{alert_title} — Folia",
     )
-    

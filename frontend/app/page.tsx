@@ -32,6 +32,7 @@ export default function RootPage() {
   }, [isLoaded, isSignedIn, user, isOnboarded, userId, setUserId, router])
 
   return (
+    
     <div style={{
       minHeight: '100vh',
       display: 'flex',

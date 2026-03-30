@@ -1,8 +1,8 @@
 'use client'
-import { useState } from 'react'
-import { Modal } from '@/frontend/components/ui/Modal'
+import { useState, useEffect } from 'react'
+import { Modal } from '@/components/ui/Modal'
 import { goalsApi } from '@/lib/api/client'
-import { useToast } from '@/frontend/components/ui/Toast'
+import { useToast } from '@/components/ui/Toast'
 import { useFoliaStore } from '@/store'
 import type { Goal, GoalCategory } from '@/types'
 
@@ -40,6 +40,20 @@ export function GoalForm({ open, onClose, onSaved, existing }: Props) {
     notes:          existing?.notes          ?? '',
   })
 
+  useEffect(() => {
+    const d = new Date()
+    d.setFullYear(d.getFullYear() + 2)
+    setForm({
+      name:           existing?.name           ?? '',
+      target_amount:  existing?.target_amount  ?? 10000,
+      current_amount: existing?.current_amount ?? 0,
+      target_date:    existing?.target_date    ?? d.toISOString().split('T')[0],
+      category:       (existing?.category      ?? 'general') as GoalCategory,
+      priority:       existing?.priority       ?? 3,
+      notes:          existing?.notes          ?? '',
+    })
+  }, [existing, open])
+
   const set = (k: keyof typeof form, v: unknown) => setForm((p) => ({ ...p, [k]: v }))
 
   const save = async () => {
@@ -66,12 +80,16 @@ export function GoalForm({ open, onClose, onSaved, existing }: Props) {
       title={existing ? 'Edit goal' : 'New goal'}
       footer={
         <>
-          <button className="btn btn-secondary" onClick={onClose} disabled={saving}>Cancel</button>
-          <button className="btn btn-primary" onClick={save} disabled={saving || !form.name}>{saving ? 'Saving...' : 'Save'}</button>
+          <button type="button" className="btn btn-secondary" onClick={onClose} disabled={saving}>Cancel</button>
+          <button type="button" className="btn btn-primary" onClick={save} disabled={saving || !form.name}>{saving ? 'Saving...' : 'Save'}</button>
         </>
       }
     >
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <div
+        style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}
+        onClick={(e) => e.stopPropagation()}
+        onMouseDown={(e) => e.stopPropagation()}
+      >
         <div>
           <label className="label">Goal name</label>
           <input className="input" placeholder="e.g. Emergency fund" value={form.name} onChange={(e) => set('name', e.target.value)} />
@@ -106,8 +124,13 @@ export function GoalForm({ open, onClose, onSaved, existing }: Props) {
           <label className="label">Priority (1 = highest)</label>
           <div style={{ display: 'flex', gap: '0.375rem' }}>
             {[1, 2, 3, 4, 5].map((p) => (
-              <button key={p} className={`btn ${form.priority === p ? 'btn-primary' : 'btn-secondary'} btn-sm`}
-                style={{ flex: 1 }} onClick={() => set('priority', p)}>
+              <button
+                type="button"
+                key={p}
+                className={`btn ${form.priority === p ? 'btn-primary' : 'btn-secondary'} btn-sm`}
+                style={{ flex: 1 }}
+                onClick={() => set('priority', p)}
+              >
                 {p}
               </button>
             ))}

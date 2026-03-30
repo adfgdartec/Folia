@@ -157,6 +157,7 @@ class SimulationRequest(BaseModel):
     scenario_b: Optional[ScenarioParams] = None
     use_monte_carlo: bool = False
     simulations: int = Field(ge=100, le=10000, default=1000)
+    simulation_type: str = "fork"  # Add simulation_type
 
 
 class SimulationResult(BaseModel):
@@ -233,6 +234,8 @@ class HealthScoreResult(BaseModel):
     debt_to_income_score: float
     savings_rate_score: float
     trajectory_score: float
+    diversification_score: float = 0.0
+    tax_efficiency_score: float = 0.0
     improvements: list[str] = []
     summary: str = ""
 
@@ -284,3 +287,16 @@ class BudgetAnalysis(BaseModel):
     spending_by_category: dict[str, float]
     month_over_month_change: float = 0.0
     ai_insights: list[str] = []
+
+class CreateAdvisorChatRequest(BaseModel):
+    title: str
+    session_id: str | None = None
+
+class AdvisorChatResponse(BaseModel):
+    id: str
+    title: str
+    session_id: str | None = None
+
+class CreateAdvisorMessageRequest(BaseModel):
+    role: Literal["user", "assistant"]
+    content: str

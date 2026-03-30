@@ -186,3 +186,51 @@ def run_simulation(req: SimulationRequest) -> SimulationResult:
         total_interest_a = total_interest_a,
         total_interest_b = total_interest_b,
     )
+
+
+def run_monte_carlo(req: SimulationRequest) -> SimulationResult:
+    timeline_a = _monte_carlo(req.metadata, req.scenario_a, req.horizon_years, req.simulations)
+    _, total_interest_a, debt_free_a = _simulate_single(req.metadata, req.scenario_a, req.horizon_years)
+
+    timeline_b = None
+    total_interest_b = 0.0
+    debt_free_b = None
+    if req.scenario_b:
+        timeline_b = _monte_carlo(req.metadata, req.scenario_b, req.horizon_years, req.simulations)
+        _, total_interest_b, debt_free_b = _simulate_single(req.metadata, req.scenario_b, req.horizon_years)
+
+    divergence = None
+    if timeline_b and timeline_a:
+        nw_a = timeline_a[-1].net_worth
+        nw_b = timeline_b[-1].net_worth
+        divergence = round(abs(nw_a - nw_b), 2)
+
+    return SimulationResult(
+        scenario_a=timeline_a,
+        scenario_b=timeline_b,
+        divergence_at_horizon=divergence,
+        debt_free_year_a=debt_free_a,
+        debt_free_year_b=debt_free_b,
+        total_interest_a=total_interest_a,
+        total_interest_b=total_interest_b,
+    )
+
+
+def run_debt_optimizer(req: SimulationRequest) -> SimulationResult:
+    return run_simulation(req)
+
+
+def run_retirement_sim(req: SimulationRequest) -> SimulationResult:
+    return run_simulation(req)
+
+
+def run_home_buying(req: SimulationRequest) -> SimulationResult:
+    return run_simulation(req)
+
+
+def run_fafsa_calc(req: SimulationRequest) -> SimulationResult:
+    return run_simulation(req)
+
+
+def run_tax_year_sim(req: SimulationRequest) -> SimulationResult:
+    return run_simulation(req)

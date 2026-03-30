@@ -1,5 +1,17 @@
 import json
 from models.schemas import FinancialMetadata, ChatMessage, LiteracyLevel
+from core.config import get_settings
+
+def select_model_for_task(task: str, complexity: str = "medium") -> str:
+    settings = get_settings()
+    if task == "advisor":
+        return settings.advisor_model
+    elif task == "narration":
+        return settings.narration_model
+    elif task == "document":
+        return settings.document_model
+    else:
+        return settings.advisor_model  # default
 
 LITERACY_INSTRUCTIONS = {
     LiteracyLevel.beginner: (
@@ -28,17 +40,18 @@ CORE RULES:
 4. Personalize every answer to the user's specific financial situation.
 5. Never give specific investment advice (e.g., "buy this stock"). Educate instead.
 6. Always end with one clear, actionable next step.
-7. Disclaimer: append "Educational purposes only — not personalized financial advice." at the end.
+7. Disclaimer: append "📋 Educational purposes only — not personalized financial advice." at the end.
 
 LANGUAGE CALIBRATION: {literacy_instruction}
 """
+
 
 def build_advisor_prompt(
     query: str,
     chunks: list[dict],
     metadata: FinancialMetadata,
     history: list[ChatMessage]
-) -> list[dict]:
+) -> tuple[list[dict], str]:
     literacy_instruction = LITERACY_INSTRUCTIONS.get(
         metadata.literacy_level,
         LITERACY_INSTRUCTIONS[LiteracyLevel.beginner]
@@ -80,14 +93,15 @@ def build_advisor_prompt(
         messages.append({"role": msg.role, "content": msg.content})
 
     messages.append({"role": "user", "content": query})
-    return messages
+    model = select_model_for_task("advisor", "high" if len(chunks) > 10 else "medium")
+    return messages, model
 
 
 def build_narration_prompt(
     context: str,
     metadata: FinancialMetadata,
     narration_type: str
-) -> list[dict]:
+) -> tuple[list[dict], str]:
     type_instructions = {
         "simulation": "Explain the simulation result in 2-3 sentences. Focus on the most important number and what it means for this person's life.",
         "tax": "Summarize the tax situation in 2-3 sentences. Highlight the biggest opportunity to reduce taxes.",
@@ -104,7 +118,7 @@ def build_narration_prompt(
         LITERACY_INSTRUCTIONS[LiteracyLevel.beginner]
     )
 
-    return [
+    messages = [
         {
             "role": "system",
             "content": (
@@ -120,3 +134,5 @@ def build_narration_prompt(
             "content": f"Narrate this financial data:\n\n{context}"
         }
     ]
+    model = select_model_for_task("narration")
+    return messages, model

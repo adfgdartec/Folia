@@ -8,7 +8,6 @@ import traceback
 from core.config import get_settings
 from core.database import get_supabase
 from services.vector_store import get_index_stats
-from core.rate_limit import limiter, rate_limit_exceeded_handler
 from routers import advisor, simulate, tax, documents, stocks, narrate, glossary, health, budget, macro, users, assets, debts, goals, transactions, alerts, paper_trading, education, journal, community, bills, webhooks
 
 
@@ -23,9 +22,7 @@ app = FastAPI(
     redoc_url=None, 
 )
 
-# Rate Limiter
-app.state.limiter = limiter
-app.add_execption_handler(RateLimitExceeded, rate_limit_exceeded_handler)
+
 
 # Middleware
 app.add_middleware(GZipMiddleware, minimum_size=1000)
@@ -37,7 +34,7 @@ app.add_middleware(
         settings.frontend_url,
     ],
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allow_headers=[
         "Content-Type", 
         "Authorization", 
@@ -127,16 +124,6 @@ async def health_check():
     except Exception as e:
         checks["database"] = f"error: {e}"
  
-    try:
-        from core.cache import get_redis
-        r = await get_redis()
-        if r:
-            await r.ping()
-            checks["redis"] = "ok"
-        else:
-            checks["redis"] = "not configured"
-    except Exception as e:
-        checks["redis"] = f"error: {e}"
  
     if settings.pinecone_api_key:
         try:

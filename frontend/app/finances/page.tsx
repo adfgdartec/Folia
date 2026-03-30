@@ -1,5 +1,5 @@
 "use client";
-import { useState, useRef } from "react";
+import { useState } from "react";
 import {
   useAssets,
   useDebts,
@@ -29,6 +29,7 @@ import {
 } from "@/lib/api/client";
 import { useFoliaStore } from "@/store";
 import type { Asset, Debt, Goal } from "@/types";
+import { useRef } from "react";
 
 type Tab = "overview" | "assets" | "debts" | "goals" | "transactions";
 
@@ -76,11 +77,27 @@ export default function FinancesPage() {
           </button>
         ))}
       </div>
-      {tab === "overview" && <OverviewTab />}
-      {tab === "assets" && <AssetsTab />}
-      {tab === "debts" && <DebtsTab />}
-      {tab === "goals" && <GoalsTab />}
-      {tab === "transactions" && <TransactionsTab />}
+
+      {/*
+        Render ALL tabs at once, only hide the inactive ones.
+        This prevents unmounting on tab switch or after refetch,
+        which was resetting showAdd/showEdit/etc. back to false.
+      */}
+      <div style={{ display: tab === "overview" ? undefined : "none" }}>
+        <OverviewTab />
+      </div>
+      <div style={{ display: tab === "assets" ? undefined : "none" }}>
+        <AssetsTab />
+      </div>
+      <div style={{ display: tab === "debts" ? undefined : "none" }}>
+        <DebtsTab />
+      </div>
+      <div style={{ display: tab === "goals" ? undefined : "none" }}>
+        <GoalsTab />
+      </div>
+      <div style={{ display: tab === "transactions" ? undefined : "none" }}>
+        <TransactionsTab />
+      </div>
     </div>
   );
 }
@@ -265,7 +282,7 @@ function AssetsTab() {
             {formatCurrency(data?.total ?? 0)}
           </div>
         </div>
-        <button className="btn btn-primary" onClick={() => setShowAdd(true)}>
+        <button type="button" className="btn btn-primary" onClick={() => setShowAdd(true)}>
           + Add asset
         </button>
       </div>
@@ -352,12 +369,14 @@ function AssetsTab() {
                       }}
                     >
                       <button
+                        type="button"
                         className="btn btn-ghost btn-xs"
                         onClick={() => setEdit(a)}
                       >
                         Edit
                       </button>
                       <button
+                        type="button"
                         className="btn btn-ghost btn-xs"
                         style={{ color: "var(--red)" }}
                         onClick={() => setDel(a)}
@@ -403,6 +422,7 @@ function AssetsTab() {
   );
 }
 
+// ─── DEBTS ────────────────────────────────────────────────────────────────────
 
 function DebtsTab() {
   const { data, refetch } = useDebts();
@@ -473,7 +493,7 @@ function DebtsTab() {
       </div>
 
       {/* Strategy comparison */}
-      {strats && (
+      {strats && strats.avalanche && (
         <div className="card">
           <div
             style={{
@@ -609,6 +629,7 @@ function DebtsTab() {
         >
           <SectionHeader title="Active debts" />
           <button
+            type="button"
             className="btn btn-primary btn-sm"
             onClick={() => setShowAdd(true)}
           >
@@ -671,6 +692,7 @@ function DebtsTab() {
                       }}
                     >
                       <button
+                        type="button"
                         className="btn btn-ghost btn-xs"
                         onClick={() => {
                           setPayD(d);
@@ -680,12 +702,14 @@ function DebtsTab() {
                         Pay
                       </button>
                       <button
+                        type="button"
                         className="btn btn-ghost btn-xs"
                         onClick={() => setEdit(d)}
                       >
                         Edit
                       </button>
                       <button
+                        type="button"
                         className="btn btn-ghost btn-xs"
                         style={{ color: "var(--red)" }}
                         onClick={() => setDel(d)}
@@ -748,6 +772,7 @@ function DebtsTab() {
               boxShadow: "0 24px 64px rgba(0,0,0,0.6)",
             }}
             onClick={(e) => e.stopPropagation()}
+            onMouseDown={(e) => e.stopPropagation()}
           >
             <div
               style={{
@@ -786,6 +811,7 @@ function DebtsTab() {
               }}
             >
               <button
+                type="button"
                 className="btn btn-secondary"
                 onClick={() => setPayD(null)}
                 disabled={paying}
@@ -793,6 +819,7 @@ function DebtsTab() {
                 Cancel
               </button>
               <button
+                type="button"
                 className="btn btn-primary"
                 onClick={handlePay}
                 disabled={paying || !payAmt || +payAmt <= 0}
@@ -892,6 +919,7 @@ function GoalsTab() {
           <div />
         )}
         <button
+          type="button"
           className="btn btn-primary btn-sm"
           onClick={() => setShowAdd(true)}
         >
@@ -999,6 +1027,7 @@ function GoalsTab() {
                   </span>
                   <div style={{ display: "flex", gap: "0.375rem" }}>
                     <button
+                      type="button"
                       className="btn btn-primary btn-xs"
                       onClick={() => {
                         setContG(g);
@@ -1008,12 +1037,14 @@ function GoalsTab() {
                       + Add
                     </button>
                     <button
+                      type="button"
                       className="btn btn-ghost btn-xs"
                       onClick={() => setEdit(g)}
                     >
                       Edit
                     </button>
                     <button
+                      type="button"
                       className="btn btn-ghost btn-xs"
                       style={{ color: "var(--red)" }}
                       onClick={() => setDel(g)}
@@ -1078,6 +1109,7 @@ function GoalsTab() {
               boxShadow: "0 24px 64px rgba(0,0,0,0.6)",
             }}
             onClick={(e) => e.stopPropagation()}
+            onMouseDown={(e) => e.stopPropagation()}
           >
             <div
               style={{
@@ -1107,6 +1139,7 @@ function GoalsTab() {
               }}
             >
               <button
+                type="button"
                 className="btn btn-secondary"
                 onClick={() => setContG(null)}
                 disabled={conting}
@@ -1114,6 +1147,7 @@ function GoalsTab() {
                 Cancel
               </button>
               <button
+                type="button"
                 className="btn btn-primary"
                 onClick={handleCont}
                 disabled={conting || !contAmt || +contAmt <= 0}
@@ -1193,12 +1227,14 @@ function TransactionsTab() {
           onChange={(e) => setSearch(e.target.value)}
         />
         <button
+          type="button"
           className="btn btn-primary btn-sm"
           onClick={() => setShowAdd(true)}
         >
           + Log
         </button>
         <button
+          type="button"
           className="btn btn-secondary btn-sm"
           onClick={() => fileRef.current?.click()}
         >
@@ -1303,6 +1339,7 @@ function TransactionsTab() {
                   </td>
                   <td>
                     <button
+                      type="button"
                       className="btn btn-ghost btn-xs"
                       style={{ color: "var(--t4)" }}
                       onClick={() => handleDel(tx.id)}

@@ -94,11 +94,9 @@ const US_STATES = [
 
 export default function OnboardingPage() {
   const router = useRouter();
-  const { setMetadata, setProfile, userId } = useFoliaStore((s) => ({
-    setMetadata: s.setMetadata,
-    setProfile: s.setProfile,
-    userId: s.userId,
-  }));
+  const setMetadata = useFoliaStore((s) => s.setMetadata);
+  const setProfile = useFoliaStore((s) => s.setProfile);
+  const userId = useFoliaStore((s) => s.userId);
   const [step, setStep] = useState(0);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
@@ -280,7 +278,6 @@ export default function OnboardingPage() {
           {/* Step 0 — Welcome */}
           {step === 0 && (
             <div style={{ textAlign: "center", padding: "1rem 0" }}>
-              <div style={{ fontSize: "2.5rem", marginBottom: "1rem" }}>👋</div>
               <h2
                 style={{
                   fontSize: "1.4rem",
@@ -818,7 +815,6 @@ export default function OnboardingPage() {
           {/* Step 7 — Complete */}
           {step === 7 && (
             <div style={{ textAlign: "center", padding: "1rem 0" }}>
-              <div style={{ fontSize: "2.5rem", marginBottom: "1rem" }}>🎉</div>
               <h2
                 style={{
                   fontSize: "1.3rem",

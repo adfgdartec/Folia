@@ -43,10 +43,18 @@ class Settings(BaseSettings):
     narration_temperature: float = 0.4
     max_tokens_advisor: int = 1200
     max_tokens_narration: int = 300
+    redis_url: str = ""
 
     class Config:
-        env_file = ".env"
+        env_file = ".env.local"
         case_sensitive = False
+        extra = "allow"  # accept extra keys like google_client_id, sengrid_api_key, etc.
+
+    # Optional fields for common 3rd-party variables that may show up in envs
+    google_client_id: str = ""
+    google_client_secret: str = ""
+    sengrid_api_key: str = ""
+    sengrid_welcome_template_id: str = ""  # typo keys accepted for backward compatibility
 
 
 @lru_cache()

@@ -1,6 +1,5 @@
 """
-Run this script once (or whenever you add new documents) to
-ingest PDF documents into the Supabase pgvector knowledge base.
+Ingest IRS/CFPB/SEC/DOL/SSA PDFs into the vector store (Pinecone or Supabase).
 
 Usage:
     cd backend
@@ -8,52 +7,55 @@ Usage:
     python -m knowledge_base.ingest_docs
 
 Download source PDFs from:
-  - IRS Publications: https://www.irs.gov/forms-instructions
-  - CFPB Guides:      https://www.consumerfinance.gov/consumer-tools/
-  - SEC Education:    https://www.investor.gov/
+  IRS:  https://www.irs.gov/forms-instructions
+  CFPB: https://www.consumerfinance.gov/consumer-tools/
+  SEC:  https://www.investor.gov/
+  DOL:  https://www.dol.gov/agencies/ebsa/about-ebsa/our-activities/resource-center/publications
+  SSA:  https://www.ssa.gov/pubs/
+
+Place PDFs in: backend/knowledge_base/docs/
 """
 
 import asyncio
-import os
 import sys
 from pathlib import Path
 
-# Add backend root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from pypdf import PdfReader
-from core.database import get_supabase, insert_rows
 from rag.embedder import embed_batch, chunk_text
 from core.config import get_settings
+import re
+import logging
+
+logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
+logger = logging.getLogger(__name__)
 
 settings = get_settings()
-
 DOCS_DIR = Path(__file__).parent / "docs"
 
-# Map filename to human-readable source name used in citations
 DOCUMENT_SOURCES = {
-    "irs_pub_17.pdf":       "IRS Publication 17 — Your Federal Income Tax",
-    "irs_pub_590a.pdf":     "IRS Publication 590-A — IRA Contributions",
-    "irs_pub_590b.pdf":     "IRS Publication 590-B — IRA Distributions & RMDs",
-    "irs_pub_970.pdf":      "IRS Publication 970 — Tax Benefits for Education",
-    "irs_pub_505.pdf":      "IRS Publication 505 — Tax Withholding & Estimated Tax",
-    "irs_pub_334.pdf":      "IRS Publication 334 — Tax Guide for Small Business",
-    "cfpb_consumer.pdf":    "CFPB — Consumer Financial Protection Guide",
-    "cfpb_credit_cards.pdf":"CFPB — Credit Card Guide",
-    "cfpb_mortgages.pdf":   "CFPB — Mortgage Guide",
-    "sec_investor_edu.pdf": "SEC — Investor Education Guide",
-    "dol_401k_guide.pdf":   "DOL — 401(k) Plan Guide",
-    "ssa_retirement.pdf":   "SSA — Retirement Benefits Guide",
-    "fafsa_guide.pdf":      "Federal Student Aid — FAFSA Guide",
+    "irs_pub_17.pdf":        "IRS Publication 17 — Your Federal Income Tax",
+    "irs_pub_590a.pdf":      "IRS Publication 590-A — IRA Contributions",
+    "irs_pub_590b.pdf":      "IRS Publication 590-B — IRA Distributions & RMDs",
+    "irs_pub_970.pdf":       "IRS Publication 970 — Tax Benefits for Education",
+    "irs_pub_505.pdf":       "IRS Publication 505 — Tax Withholding & Estimated Tax",
+    "irs_pub_334.pdf":       "IRS Publication 334 — Tax Guide for Small Business",
+    "cfpb_consumer.pdf":     "CFPB — Consumer Financial Protection Guide",
+    "cfpb_credit_cards.pdf": "CFPB — Credit Card Guide",
+    "cfpb_mortgages.pdf":    "CFPB — Mortgage Guide",
+    "sec_investor_edu.pdf":  "SEC — Investor Education Guide",
+    "dol_401k_guide.pdf":    "DOL — 401(k) Plan Guide",
+    "ssa_retirement.pdf":    "SSA — Retirement Benefits Guide",
+    "fafsa_guide.pdf":       "Federal Student Aid — FAFSA Guide",
 }
 
 BATCH_SIZE = 50
 
 
 def extract_text_from_pdf(filepath: Path) -> str:
-    """Extract all text from a PDF file."""
     reader = PdfReader(str(filepath))
-    pages = []
+    pages  = []
     for page in reader.pages:
         text = page.extract_text()
         if text:
@@ -62,111 +64,122 @@ def extract_text_from_pdf(filepath: Path) -> str:
 
 
 def clean_text(text: str) -> str:
-    """Basic cleanup — remove excessive whitespace."""
-    import re
-    text = re.sub(r'\n{3,}', '\n\n', text)
-    text = re.sub(r' {2,}', ' ', text)
+    text = re.sub(r"\n{3,}", "\n\n", text)
+    text = re.sub(r" {2,}", " ", text)
     return text.strip()
 
 
-async def ingest_pdf(filepath: Path, source_name: str, overwrite: bool = False):
-    """Chunk, embed, and store a single PDF in the knowledge base."""
-    print(f"\n{'='*60}")
-    print(f"Ingesting: {source_name}")
-    print(f"File: {filepath.name}")
+async def ingest_pdf_pinecone(filepath: Path, source_name: str, overwrite: bool = False):
+    from services.vector_store import ingest_knowledge_chunks
 
-    supabase = get_supabase()
+    logger.info("Ingesting via Pinecone: %s", source_name)
+    raw   = extract_text_from_pdf(filepath)
+    text  = clean_text(raw)
+    chunks = chunk_text(text)
 
-    # Check if already ingested
-    if not overwrite:
-        existing = supabase.table("knowledge_base").select("id").eq("source", source_name).limit(1).execute()
-        if existing.data:
-            print(f"  Already ingested ({len(existing.data)} chunks found). Skipping.")
-            print("  Use overwrite=True to re-ingest.")
-            return
-
-    # Extract text
-    print("  Extracting text...")
-    try:
-        raw_text = extract_text_from_pdf(filepath)
-        text = clean_text(raw_text)
-    except Exception as e:
-        print(f"  ERROR extracting text: {e}")
+    if not chunks:
+        logger.warning("No chunks extracted from %s", filepath.name)
         return
 
-    if len(text) < 100:
-        print(f"  WARNING: Very little text extracted ({len(text)} chars). Skipping.")
-        return
-
-    # Chunk
-    chunks = chunk_text(text, chunk_size=settings.rag_chunk_size, overlap=settings.rag_chunk_overlap)
-    print(f"  Created {len(chunks)} chunks")
-
-    # Embed + store in batches
-    total_inserted = 0
+    logger.info("  %d chunks, embedding in batches of %d...", len(chunks), BATCH_SIZE)
+    all_embeddings = []
     for i in range(0, len(chunks), BATCH_SIZE):
-        batch_chunks = chunks[i:i + BATCH_SIZE]
-        print(f"  Embedding batch {i // BATCH_SIZE + 1}/{(len(chunks) + BATCH_SIZE - 1) // BATCH_SIZE}...")
+        batch      = chunks[i : i + BATCH_SIZE]
+        embeddings = await embed_batch(batch)
+        all_embeddings.extend(embeddings)
+        logger.info("  Embedded %d/%d", min(i + BATCH_SIZE, len(chunks)), len(chunks))
 
-        try:
-            embeddings = await embed_batch(batch_chunks)
-        except Exception as e:
-            print(f"  ERROR embedding batch: {e}")
-            continue
+    count = await ingest_knowledge_chunks(
+        chunks     = chunks,
+        embeddings = all_embeddings,
+        source     = source_name,
+        doc_type   = "government",
+        overwrite  = overwrite,
+    )
+    logger.info("  Upserted %d vectors for %s", count, source_name)
 
-        rows = [
-            {
-                "content":   chunk,
+
+async def ingest_pdf_supabase(filepath: Path, source_name: str, overwrite: bool = False):
+    from core.database import get_supabase, insert_rows
+
+    logger.info("Ingesting via Supabase pgvector: %s", source_name)
+    sb = get_supabase()
+
+    if overwrite:
+        sb.table("knowledge_base").delete().eq("source", source_name).execute()
+
+    raw    = extract_text_from_pdf(filepath)
+    text   = clean_text(raw)
+    chunks = chunk_text(text)
+
+    if not chunks:
+        logger.warning("No chunks extracted from %s", filepath.name)
+        return
+
+    logger.info("  %d chunks, embedding...", len(chunks))
+    rows = []
+    for i in range(0, len(chunks), BATCH_SIZE):
+        batch      = chunks[i : i + BATCH_SIZE]
+        embeddings = await embed_batch(batch)
+        for chunk, emb in zip(batch, embeddings):
+            rows.append({
                 "source":    source_name,
-                "metadata":  {
-                    "chunk_index": i + j,
-                    "filename":    filepath.name,
-                    "total_chunks": len(chunks),
-                },
-                "embedding": embedding,
-            }
-            for j, (chunk, embedding) in enumerate(zip(batch_chunks, embeddings))
-        ]
+                "content":   chunk,
+                "embedding": emb,
+                "doc_type":  "government",
+            })
+        logger.info("  Embedded %d/%d", min(i + BATCH_SIZE, len(chunks)), len(chunks))
 
-        try:
-            await insert_rows("knowledge_base", rows)
-            total_inserted += len(rows)
-        except Exception as e:
-            print(f"  ERROR inserting batch: {e}")
-            continue
-
-    print(f"  Done — {total_inserted} chunks inserted.")
+    await insert_rows("knowledge_base", rows)
+    logger.info("  Inserted %d rows for %s", len(rows), source_name)
 
 
-async def ingest_all(overwrite: bool = False):
-    """Ingest all documents in the docs/ directory."""
+async def main(overwrite: bool = False):
+    logger.info("=" * 60)
+    logger.info("Folia Knowledge Base Ingestion")
+    logger.info("Vector backend: %s", settings.vector_backend)
+    logger.info("=" * 60)
+
     if not DOCS_DIR.exists():
-        print(f"ERROR: docs directory not found at {DOCS_DIR}")
-        print("Create it and add PDF files from IRS.gov, CFPB.gov, etc.")
+        DOCS_DIR.mkdir(parents=True)
+        logger.info("Created docs dir: %s", DOCS_DIR)
+        logger.info("Place your PDF files there and re-run.")
         return
 
-    pdf_files = list(DOCS_DIR.glob("*.pdf"))
-    if not pdf_files:
-        print(f"No PDF files found in {DOCS_DIR}")
-        print("Download IRS publications and other source docs and place them here.")
+    pdfs = list(DOCS_DIR.glob("*.pdf"))
+    if not pdfs:
+        logger.warning("No PDF files found in %s", DOCS_DIR)
+        logger.info("Download IRS/CFPB PDFs and place them in: %s", DOCS_DIR)
         return
 
-    print(f"Found {len(pdf_files)} PDF files to ingest.")
-    print(f"Supabase URL: {settings.supabase_url[:40]}...")
+    logger.info("Found %d PDF(s) to ingest", len(pdfs))
 
-    for filepath in sorted(pdf_files):
+    use_pinecone = (
+        settings.vector_backend == "pinecone"
+        and settings.pinecone_api_key
+    )
+
+    for filepath in sorted(pdfs):
         source_name = DOCUMENT_SOURCES.get(filepath.name, filepath.stem.replace("_", " ").title())
-        await ingest_pdf(filepath, source_name, overwrite=overwrite)
+        try:
+            if use_pinecone:
+                await ingest_pdf_pinecone(filepath, source_name, overwrite)
+            else:
+                await ingest_pdf_supabase(filepath, source_name, overwrite)
+        except Exception as e:
+            logger.error("Failed to ingest %s: %s", filepath.name, e)
 
-    print("\n" + "="*60)
-    print("INGESTION COMPLETE")
-
-    # Show final count
-    supabase = get_supabase()
-    result = supabase.table("knowledge_base").select("id", count="exact").execute()
-    print(f"Total chunks in knowledge base: {result.count}")
+    logger.info("")
+    logger.info("Ingestion complete!")
+    if use_pinecone:
+        from services.vector_store import get_index_stats
+        stats = await get_index_stats()
+        logger.info("Pinecone index stats: %s", stats)
 
 
 if __name__ == "__main__":
-    overwrite_flag = "--overwrite" in sys.argv
-    asyncio.run(ingest_all(overwrite=overwrite_flag))
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--overwrite", action="store_true", help="Re-ingest existing documents")
+    args = parser.parse_args()
+    asyncio.run(main(overwrite=args.overwrite))
