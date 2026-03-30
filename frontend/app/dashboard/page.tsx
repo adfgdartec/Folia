@@ -82,7 +82,7 @@ export default function DashboardPage() {
             </p>
           )}
         </div>
-        {dash?.alerts?.length > 0 && (
+        {(dash?.alerts ?? []).length > 0 && (
           <Link href="/dashboard#alerts" style={{ textDecoration: "none" }}>
             <div
               style={{
@@ -110,7 +110,7 @@ export default function DashboardPage() {
                   fontWeight: 600,
                 }}
               >
-                {dash.alerts.length} alert{dash.alerts.length !== 1 ? "s" : ""}
+                {dash!.alerts?.length || 0} alert{(dash!.alerts?.length || 0) !== 1 ? "s" : ""}
               </span>
             </div>
           </Link>
@@ -207,8 +207,8 @@ export default function DashboardPage() {
               </div>
             </div>
           </div>
-          {history?.snapshots?.length > 1 ? (
-            <NetWorthChart data={history.snapshots} height={130} />
+          {(history?.snapshots?.length ?? 0) > 1 ? (
+            <NetWorthChart data={history!.snapshots} height={130} />
           ) : (
             <div
               style={{
@@ -411,7 +411,7 @@ export default function DashboardPage() {
               View all →
             </Link>
           </div>
-          {dash?.goals?.length > 0 ? (
+          {(dash?.goals?.length ?? 0) > 0 ? (
             <div
               style={{
                 display: "flex",
@@ -419,7 +419,7 @@ export default function DashboardPage() {
                 gap: "0.75rem",
               }}
             >
-              {dash.goals.slice(0, 4).map((g: any) => {
+              {dash!.goals.slice(0, 4).map((g: any) => {
                 const pct = Math.min(
                   100,
                   g.target_amount > 0
@@ -505,7 +505,7 @@ export default function DashboardPage() {
               {dash?.alerts?.length ?? 0} unread
             </span>
           </div>
-          {dash?.alerts?.length > 0 ? (
+          {(dash?.alerts?.length ?? 0) > 0 ? (
             <div
               style={{
                 display: "flex",
@@ -513,7 +513,7 @@ export default function DashboardPage() {
                 gap: "0.5rem",
               }}
             >
-              {dash.alerts.slice(0, 5).map((a: any) => (
+              {dash!.alerts.slice(0, 5).map((a: any) => (
                 <AlertRow key={a.id} alert={a} onDismiss={refetch} />
               ))}
             </div>
@@ -528,7 +528,7 @@ export default function DashboardPage() {
       </div>
 
       {/* ── Active debts ── */}
-      {dash?.debts?.length > 0 && (
+      {(dash?.debts?.length ?? 0) > 0 && (
         <div className="card">
           <div
             style={{
@@ -558,7 +558,7 @@ export default function DashboardPage() {
               gap: "0.625rem",
             }}
           >
-            {dash.debts.slice(0, 6).map((d: any) => (
+            {dash!.debts.slice(0, 6).map((d: any) => (
               <div
                 key={d.id}
                 className="card-sm"
@@ -600,14 +600,14 @@ export default function DashboardPage() {
       )}
 
       {/* ── Health improvements ── */}
-      {health?.improvements?.length > 0 && (
+      {(health?.improvements?.length ?? 0) > 0 && (
         <div className="insight">
           <div className="insight-label">Top actions to improve your score</div>
-          {health.improvements.slice(0, 2).map((imp: string, i: number) => (
+          {health!.improvements.slice(0, 2).map((imp: string, i: number) => (
             <div
               key={i}
               style={{
-                marginBottom: i < health.improvements.length - 1 ? "0.5rem" : 0,
+                marginBottom: i < health!.improvements.length - 1 ? "0.5rem" : 0,
               }}
             >
               → {imp}
