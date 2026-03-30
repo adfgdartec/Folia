@@ -679,7 +679,7 @@ function PortfolioTab({ userId }: { userId: string }) {
     );
   }
 
-  const totalReturn = port.total_return_pct ?? 0;
+  const totalReturn = port.total_return_percent ?? 0;
   return (
     <div
       className="stagger"
@@ -705,7 +705,7 @@ function PortfolioTab({ userId }: { userId: string }) {
           },
           {
             l: "Invested",
-            v: formatCurrency(port.holdings_value ?? 0),
+            v: formatCurrency((port.total_value ?? 0) - (port.cash_balance ?? 0)),
             c: "var(--blue)",
           },
           {

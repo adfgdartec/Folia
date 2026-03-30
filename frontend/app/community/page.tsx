@@ -63,7 +63,10 @@ export default function CommunityPage() {
           communityApi.listTemplates(stage),
           communityApi.getBenchmarks(stage),
         ]);
-        setTemplates(t.templates ?? []);
+        setTemplates((t.templates ?? []).map((template: any) => ({
+          ...template,
+          template_title: template.template_title || "",
+        })));
         setBenchmarks(b);
       } catch {
       } finally {
@@ -93,7 +96,7 @@ export default function CommunityPage() {
     "accelerate",
     "preserve",
     "retire",
-  ];
+  ] as const;
 
   const nwBench = benchmarks?.benchmarks?.net_worth;
   const srBench = benchmarks?.benchmarks?.savings_rate;

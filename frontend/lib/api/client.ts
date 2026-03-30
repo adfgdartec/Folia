@@ -441,7 +441,7 @@ export const narrateApi = {
 };
 
 export const paperTradingApi = {
-  createPortfolio: (userId: string, startingCash: 100000) =>
+  createPortfolio: (userId: string, startingCash: number = 100000) =>
     post<PaperPortfolio>("/api/paper-trading/portfolio", {
       user_id: userId,
       starting_cash: startingCash,

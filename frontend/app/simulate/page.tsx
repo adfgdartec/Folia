@@ -126,7 +126,7 @@ export default function SimulatePage() {
       let scenBFinal: ScenarioParams | undefined = undefined;
 
       if (mode === "life_event") {
-        scenAFinal = { label: "Without event", ...scenA };
+        scenAFinal = { ...scenA, label: "Without event" };
         scenBFinal = {
           label: ev.label,
           monthly_savings_delta: scenA.monthly_savings_delta ?? 0,
@@ -149,7 +149,7 @@ export default function SimulatePage() {
           extra_debt_payment: extraDebt,
         };
       } else if (mode === "retirement") {
-        scenAFinal = { label: "Current savings rate", ...scenA };
+        scenAFinal = { ...scenA, label: "Current savings rate" };
         scenBFinal = {
           label: "Max contributions",
           monthly_savings_delta: (scenA.monthly_savings_delta ?? 0) + 500,
