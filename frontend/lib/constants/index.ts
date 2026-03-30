@@ -87,7 +87,6 @@ export const NAV_SECTIONS = [
   { href: '/learn',      label: 'Learn',         description: 'Curriculum and glossary' },
   { href: '/advisor',    label: 'AI Advisor',   description: 'RAG-powered financial guidance' },
   { href: '/tax',        label: 'Tax',           description: '2024 tax calculator' },
-  { href: '/documents',  label: 'Documents',    description: 'AI document intelligence' },
   { href: '/journal',    label: 'Journal',      description: 'Decision tracking' },
   { href: '/community',  label: 'Community',    description: 'Peer benchmarks and templates' },
 ]

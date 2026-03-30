@@ -144,9 +144,8 @@ export default function CommunityPage() {
           color: "var(--blue)",
         }}
       >
-        <span>🔒</span>
         No personal data is shared. All benchmarks use aggregated, anonymized
-        ranges — never individual figures.
+        ranges and never individual figures.
       </div>
 
       {/* Life stage selector */}
@@ -530,30 +529,23 @@ export default function CommunityPage() {
         >
           {[
             {
-              icon: "🔒",
               t: "Zero PII",
               d: "Only age range, income range, and life stage are stored — never names, amounts, or identifiers",
             },
             {
-              icon: "📊",
               t: "Aggregate only",
               d: "Benchmarks show P25/P50/P75 distributions, never individual data points",
             },
             {
-              icon: "🤝",
               t: "Opt-in contribution",
               d: "You choose when to share a simulation result — never automatic",
             },
             {
-              icon: "🎯",
               t: "Contextual",
               d: "Benchmarks are filtered by your life stage so comparisons are meaningful",
             },
-          ].map(({ icon, t, d }) => (
+          ].map(({ t, d }) => (
             <div key={t} style={{ display: "flex", gap: "0.75rem" }}>
-              <span style={{ fontSize: "1.1rem", flexShrink: 0, marginTop: 2 }}>
-                {icon}
-              </span>
               <div>
                 <div
                   style={{

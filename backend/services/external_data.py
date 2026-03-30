@@ -1,29 +1,13 @@
 import httpx
-import time
 from core.config import get_settings
+from core.cache import cache_get, cache_set, _key
 
 settings = get_settings()
 
 
-_cache: dict[str, tuple] = {}
-
-
-def _cache_get(key: str):
-    if key in _cache:
-        data, expires_at = _cache[key]
-        if time.time() < expires_at:
-            return data
-        del _cache[key]
-    return None
-
-
-def _cache_set(key: str, data, ttl_seconds: int):
-    _cache[key] = (data, time.time() + ttl_seconds)
-
-
 async def get_stock_quote(ticker: str) -> dict:
-    key = f"quote:{ticker.upper()}"
-    cached = _cache_get(key)
+    key = _key("stock_quote", ticker.upper())
+    cached = await cache_get(key)
     if cached:
         return cached
 
@@ -45,13 +29,13 @@ async def get_stock_quote(ticker: str) -> dict:
         "open": data.get("o", 0),
         "prev_close": data.get("pc", 0),
     }
-    _cache_set(key, result, ttl_seconds=30)
+    await cache_set(key, result, ttl=30)  # Short TTL for highly variable data
     return result
 
 
 async def get_company_profile(ticker: str) -> dict:
-    key = f"profile:{ticker.upper()}"
-    cached = _cache_get(key)
+    key = _key("stock_profile", ticker.upper())
+    cached = await cache_get(key)
     if cached:
         return cached
 
@@ -72,13 +56,13 @@ async def get_company_profile(ticker: str) -> dict:
         "website": data.get("weburl", ""),
         "logo": data.get("logo", ""),
     }
-    _cache_set(key, result, ttl_seconds=86400)
+    await cache_set(key, result, ttl=86400)  # Long TTL for static data
     return result
 
 
 async def get_basic_financials(ticker: str) -> dict:
-    key = f"fin:{ticker.upper()}"
-    cached = _cache_get(key)
+    key = _key("stock_financials", ticker.upper())
+    cached = await cache_get(key)
     if cached:
         return cached
 
@@ -88,7 +72,7 @@ async def get_basic_financials(ticker: str) -> dict:
             params={
                 "symbol": ticker.upper(),
                 "metric": "all",
-                "token":  settings.finnhub_api_key
+                "token": settings.finnhub_api_key
             }
         )
         resp.raise_for_status()
@@ -103,16 +87,16 @@ async def get_basic_financials(ticker: str) -> dict:
         "week_52_high": data.get("52WeekHigh"),
         "week_52_low": data.get("52WeekLow"),
         "beta": data.get("beta"),
-        "roe":  data.get("roeRfy"),
+        "roe": data.get("roeRfy"),
         "profit_margin": data.get("netProfitMarginAnnual"),
     }
-    _cache_set(key, result, ttl_seconds=86400)
+    await cache_set(key, result, ttl=3600)  # Medium TTL for financials
     return result
 
 
 async def get_fred_series(series_id: str, limit: int = 12) -> list[dict]:
-    key = f"fred:{series_id}:{limit}"
-    cached = _cache_get(key)
+    key = _key("fred_series", series_id, str(limit))
+    cached = await cache_get(key)
     if cached:
         return cached
 
@@ -134,19 +118,19 @@ async def get_fred_series(series_id: str, limit: int = 12) -> list[dict]:
         {"date": o["date"], "value": float(o["value"]) if o["value"] != "." else None}
         for o in observations
     ]
-    _cache_set(key, result, ttl_seconds=86400 * 7)
+    await cache_set(key, result, ttl=86400 * 7)  # Weekly TTL for economic data
     return result
 
 
 async def get_current_mortgage_rate() -> float:
-    key = "fred:MORTGAGE30US:latest"
-    cached = _cache_get(key)
+    key = _key("mortgage_rate")
+    cached = await cache_get(key)
     if cached:
         return cached
 
     data = await get_fred_series("MORTGAGE30US", limit=1)
     rate = data[0]["value"] if data and data[0]["value"] is not None else 7.0
-    _cache_set(key, rate, ttl_seconds=86400)
+    await cache_set(key, rate, ttl=86400)
     return rate
 
 
@@ -160,14 +144,14 @@ async def get_cpi_data(months: int = 24) -> list[dict]:
 
 
 async def get_treasury_yields() -> dict:
-    key = "treasury:yields"
-    cached = _cache_get(key)
+    key = _key("treasury_yields")
+    cached = await cache_get(key)
     if cached:
         return cached
 
     series_map = {
         "3_month": "DTB3",
-        "2_year":  "DGS2",
+        "2_year": "DGS2",
         "10_year": "DGS10",
         "30_year": "DGS30",
     }
@@ -176,5 +160,5 @@ async def get_treasury_yields() -> dict:
         data = await get_fred_series(series_id, limit=1)
         results[label] = data[0]["value"] if data and data[0]["value"] is not None else None
 
-    _cache_set(key, results, ttl_seconds=3600)
+    await cache_set(key, results, ttl=3600)
     return results

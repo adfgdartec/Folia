@@ -1,4 +1,5 @@
 "use client";
+
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useFoliaStore } from "@/store";
 import { useAdvisorStream } from "@/hooks";
@@ -13,52 +14,204 @@ const STARTERS = [
   { q: "How do I build credit from scratch?", tag: "Credit" },
 ];
 
+interface ChatSummary {
+  id: string;
+  title: string;
+  last_message?: string;
+  updated_at?: string;
+}
+
 export default function AdvisorPage() {
   const metadata = useFoliaStore((s) => s.metadata);
   const { send, streaming, content, citations, reset } = useAdvisorStream();
+
   const [history, setHistory] = useState<ChatMessage[]>([]);
+  const [chatId, setChatId] = useState<string | null>(null);
+  const [chatTitle, setChatTitle] = useState("");
   const [input, setInput] = useState("");
-  const [sessionId] = useState<string>(() =>
-    Math.random().toString(36).slice(2),
-  );
+  const [sessionId, setSessionId] = useState<string>(() => crypto.randomUUID());
   const [allCitations, setAllCitations] = useState<unknown[]>([]);
+  const [pendingUserText, setPendingUserText] = useState<string | null>(null);
+  const [assistantSavedForTurn, setAssistantSavedForTurn] = useState(false);
+
+  const [pastChats, setPastChats] = useState<ChatSummary[]>([]);
+  const [loadingChats, setLoadingChats] = useState(true);
+  const [loadingMessages, setLoadingMessages] = useState(false);
+
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const [streamDone, setStreamDone] = useState(true);
+
+  /* ── Fetch past chats on mount ── */
+  const fetchChats = useCallback(async () => {
+    try {
+      const res = await fetch("/api/advisor/chats", { credentials: "include" });
+      if (res.ok) {
+        const data = await res.json();
+        setPastChats(data);
+      }
+    } catch { /* ignore */ }
+    finally { setLoadingChats(false); }
+  }, []);
+
+  useEffect(() => { fetchChats(); }, [fetchChats]);
+
+  /* ── Load a past chat ── */
+  const loadChat = useCallback(async (chat: ChatSummary) => {
+    if (streaming) return;
+    setLoadingMessages(true);
+    reset();
+    setAllCitations([]);
+    setPendingUserText(null);
+    setAssistantSavedForTurn(false);
+
+    try {
+      const res = await fetch(`/api/advisor/chats/${chat.id}/messages`, {
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to load messages");
+      const messages: { role: "user" | "assistant"; content: string }[] = await res.json();
+      setHistory(messages.map((m) => ({ role: m.role, content: m.content })));
+      setChatId(chat.id);
+      setChatTitle(chat.title);
+      setSessionId(chat.id);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingMessages(false);
+    }
+  }, [streaming, reset]);
+
+  /* ── Start new chat ── */
+  const startNewChat = useCallback(() => {
+    if (streaming) return;
+    setHistory([]);
+    reset();
+    setAllCitations([]);
+    setChatId(null);
+    setChatTitle("");
+    setSessionId(crypto.randomUUID());
+    setPendingUserText(null);
+    setAssistantSavedForTurn(false);
+  }, [streaming, reset]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [history, content]);
 
+  const makeChatTitle = (text: string) => {
+    const cleaned = text.trim().replace(/\s+/g, " ");
+    return cleaned.length > 50 ? cleaned.slice(0, 50) + "..." : cleaned || "New chat";
+  };
+
+  const createChatIfNeeded = useCallback(
+    async (firstMessage: string) => {
+      if (chatId) return { id: chatId, title: chatTitle || makeChatTitle(firstMessage) };
+
+      const title = chatTitle || makeChatTitle(firstMessage);
+
+      const res = await fetch("/api/advisor/chats", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ title, session_id: sessionId }),
+      });
+
+      if (!res.ok) {
+        const txt = await res.text();
+        throw new Error(txt || "Failed to create chat");
+      }
+
+      const created = await res.json();
+      setChatId(created.id);
+      setChatTitle(created.title);
+
+      // refresh sidebar
+      fetchChats();
+
+      return created;
+    },
+    [chatId, chatTitle, sessionId, fetchChats]
+  );
+
+  const saveMessage = useCallback(async (cid: string, role: "user" | "assistant", text: string) => {
+    const res = await fetch(`/api/advisor/chats/${cid}/messages`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ role, content: text }),
+    });
+
+    if (!res.ok) {
+      const txt = await res.text();
+      throw new Error(txt || `Failed to save ${role} message`);
+    }
+  }, []);
+
   const sendMessage = useCallback(
     async (text: string) => {
       if (!metadata || !text.trim() || streaming) return;
-      const userMsg: ChatMessage = { role: "user", content: text.trim() };
+
+      const trimmed = text.trim();
+      const userMsg: ChatMessage = { role: "user", content: trimmed };
+
       setHistory((h) => [...h, userMsg]);
       setInput("");
       reset();
-      setStreamDone(false);
       setAllCitations([]);
+      setPendingUserText(trimmed);
+      setAssistantSavedForTurn(false);
 
-      await send(text.trim(), metadata, history.slice(-12), sessionId);
-      setStreamDone(true);
+      try {
+        const chat = await createChatIfNeeded(trimmed);
+        await saveMessage(chat.id, "user", trimmed);
+
+        await send(trimmed, metadata, [...history, userMsg].slice(-12) as { role: "user" | "assistant"; content: string }[], sessionId);
+      } catch (err) {
+        console.error(err);
+      }
     },
-    [metadata, streaming, history, sessionId, send, reset],
+    [metadata, streaming, reset, createChatIfNeeded, saveMessage, send, history, sessionId]
   );
 
-  // Append assistant message after stream ends
   useEffect(() => {
-    if (
-      streamDone &&
-      content &&
-      history.length > 0 &&
-      history[history.length - 1].role === "user"
-    ) {
-      setHistory((h) => [...h, { role: "assistant", content }]);
-      setAllCitations(citations as unknown[]);
-      reset();
+    async function persistAssistantMessage() {
+      if (!streaming && content && pendingUserText && !assistantSavedForTurn) {
+        const assistantMsg: ChatMessage = { role: "assistant", content };
+
+        setHistory((h) => {
+          const last = h[h.length - 1];
+          if (last?.role === "assistant" && last.content === content) return h;
+          return [...h, assistantMsg];
+        });
+
+        setAllCitations(citations as unknown[]);
+        setAssistantSavedForTurn(true);
+        setPendingUserText(null);
+
+        try {
+          const chat = await createChatIfNeeded(pendingUserText);
+          await saveMessage(chat.id, "assistant", content);
+          fetchChats();
+        } catch (err) {
+          console.error(err);
+        } finally {
+          reset();
+        }
+      }
     }
-  }, [streamDone]);
+
+    persistAssistantMessage();
+  }, [
+    streaming,
+    content,
+    citations,
+    pendingUserText,
+    assistantSavedForTurn,
+    createChatIfNeeded,
+    saveMessage,
+    reset,
+    fetchChats,
+  ]);
 
   const handleKey = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -75,319 +228,392 @@ export default function AdvisorPage() {
   const isEmpty = history.length === 0 && !streaming;
 
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        height: "calc(100vh - 4rem)",
-        maxWidth: 760,
-        margin: "0 auto",
-      }}
-    >
-      {/* Header */}
+    <div style={{ display: "flex", height: "calc(100vh - 4rem)", gap: 0 }}>
+      {/* ── Chat history sidebar ── */}
       <div
         style={{
-          paddingBottom: "1.25rem",
-          flexShrink: 0,
-          borderBottom: "1px solid var(--b1)",
+          width: 260,
+          minWidth: 260,
+          borderRight: "1px solid var(--b1)",
+          display: "flex",
+          flexDirection: "column",
+          background: "var(--bg-2)",
+          overflow: "hidden",
         }}
       >
         <div
           style={{
+            padding: "1rem 0.875rem 0.75rem",
+            borderBottom: "1px solid var(--b1)",
             display: "flex",
+            alignItems: "center",
             justifyContent: "space-between",
-            alignItems: "flex-start",
           }}
         >
-          <div>
-            <h1 className="page-title">AI Financial Advisor</h1>
-            <p className="page-sub">
-              Grounded in IRS, CFPB & SEC documents · Personalized to your
-              profile
-            </p>
-          </div>
-          {history.length > 0 && (
-            <button
-              className="btn btn-ghost btn-sm"
-              onClick={() => {
-                setHistory([]);
-                reset();
-                setAllCitations([]);
-              }}
-            >
-              Clear
-            </button>
-          )}
+          <span style={{ fontSize: "0.775rem", fontWeight: 600, color: "var(--t2)" }}>
+            Chat History
+          </span>
+          <button
+            className="btn btn-ghost btn-sm"
+            style={{ fontSize: "0.7rem", padding: "0.25rem 0.5rem" }}
+            onClick={startNewChat}
+          >
+            + New
+          </button>
         </div>
 
-        {/* Disclaimer */}
-        <div
-          style={{
-            display: "flex",
-            gap: "0.5rem",
-            alignItems: "flex-start",
-            marginTop: "0.875rem",
-            padding: "0.625rem 0.875rem",
-            background: "var(--amber-bg)",
-            border: "1px solid var(--amber-border)",
-            borderRadius: "var(--r)",
-            fontSize: "0.775rem",
-            color: "var(--amber)",
-            lineHeight: 1.5,
-          }}
-        >
-          <span style={{ fontSize: "0.7rem", marginTop: 1 }}>⚠</span>
-          Educational information only — not personalized financial advice.
-          Consult a licensed advisor for major decisions.
+        <div style={{ flex: 1, overflowY: "auto", padding: "0.375rem" }}>
+          {loadingChats && (
+            <div style={{ padding: "1rem", fontSize: "0.75rem", color: "var(--t4)", textAlign: "center" }}>
+              Loading...
+            </div>
+          )}
+          {!loadingChats && pastChats.length === 0 && (
+            <div style={{ padding: "1rem", fontSize: "0.75rem", color: "var(--t4)", textAlign: "center" }}>
+              No past chats yet
+            </div>
+          )}
+          {pastChats.map((chat) => (
+            <button
+              key={chat.id}
+              onClick={() => loadChat(chat)}
+              style={{
+                display: "block",
+                width: "100%",
+                textAlign: "left",
+                background: chat.id === chatId ? "var(--bg-3)" : "transparent",
+                border: chat.id === chatId ? "1px solid var(--b1)" : "1px solid transparent",
+                borderRadius: "var(--r)",
+                padding: "0.625rem 0.75rem",
+                cursor: "pointer",
+                transition: "all 0.1s",
+                marginBottom: 2,
+              }}
+            >
+              <div
+                style={{
+                  fontSize: "0.8rem",
+                  fontWeight: chat.id === chatId ? 600 : 500,
+                  color: "var(--t1)",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {chat.title || "Untitled"}
+              </div>
+              {chat.last_message && (
+                <div
+                  style={{
+                    fontSize: "0.68rem",
+                    color: "var(--t4)",
+                    marginTop: 2,
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {chat.last_message}
+                </div>
+              )}
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* Messages area */}
+      {/* ── Main chat area ── */}
       <div
         style={{
           flex: 1,
-          overflowY: "auto",
-          padding: "1.25rem 0",
           display: "flex",
           flexDirection: "column",
-          gap: "1rem",
+          maxWidth: 760,
+          margin: "0 auto",
+          width: "100%",
         }}
       >
-        {/* Empty state */}
-        {isEmpty && (
+        {loadingMessages && (
           <div
-            className="fade-up"
             style={{
+              position: "absolute",
+              inset: 0,
               display: "flex",
-              flexDirection: "column",
-              gap: "1.5rem",
-              paddingTop: "1rem",
+              alignItems: "center",
+              justifyContent: "center",
+              background: "var(--bg)",
+              opacity: 0.7,
+              zIndex: 10,
             }}
           >
-            {metadata && (
-              <div style={{ textAlign: "center" }}>
-                <div
-                  style={{
-                    fontSize: "0.825rem",
-                    color: "var(--t3)",
-                    marginBottom: "0.375rem",
-                  }}
-                >
-                  Financial metadata loaded
-                </div>
-                <div
-                  style={{
-                    display: "flex",
-                    gap: "0.375rem",
-                    justifyContent: "center",
-                    flexWrap: "wrap",
-                  }}
-                >
-                  {[
-                    `Age ${metadata.age}`,
-                    `${metadata.life_stage} stage`,
-                    `${metadata.income_type.replace("_", "-")} income`,
-                    metadata.literacy_level,
-                  ].map((tag) => (
-                    <span key={tag} className="tag">
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
+            <span style={{ fontSize: "0.85rem", color: "var(--t3)" }}>Loading messages...</span>
+          </div>
+        )}
 
+        <div
+          style={{
+            paddingBottom: "1.25rem",
+            flexShrink: 0,
+            borderBottom: "1px solid var(--b1)",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "flex-start",
+            }}
+          >
+            <div>
+              <h1 className="page-title">{chatTitle || "AI Financial Advisor"}</h1>
+              <p className="page-sub">
+                Grounded in IRS, CFPB & SEC documents · Personalized to your profile
+              </p>
+            </div>
+
+            {history.length > 0 && (
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                onClick={startNewChat}
+              >
+                Clear
+              </button>
+            )}
+          </div>
+
+          <div
+            style={{
+              display: "flex",
+              gap: "0.5rem",
+              alignItems: "flex-start",
+              marginTop: "0.875rem",
+              padding: "0.625rem 0.875rem",
+              background: "var(--amber-bg)",
+              border: "1px solid var(--amber-border)",
+              borderRadius: "var(--r)",
+              fontSize: "0.775rem",
+              color: "var(--amber)",
+              lineHeight: 1.5,
+            }}
+          >
+            <span style={{ fontSize: "0.7rem", marginTop: 1 }}>&#x26A0;</span>
+            Educational information only — not personalized financial advice.
+            Consult a licensed advisor for major decisions.
+          </div>
+        </div>
+
+        <div
+          style={{
+            flex: 1,
+            overflowY: "auto",
+            padding: "1.25rem 0",
+            display: "flex",
+            flexDirection: "column",
+            gap: "1rem",
+          }}
+        >
+          {isEmpty && (
             <div
+              className="fade-up"
               style={{
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr",
-                gap: "0.5rem",
+                display: "flex",
+                flexDirection: "column",
+                gap: "1.5rem",
+                paddingTop: "1rem",
               }}
             >
-              {STARTERS.map(({ q, tag }) => (
-                <button
-                  key={q}
-                  onClick={() => sendMessage(q)}
-                  disabled={!metadata}
+              {metadata && (
+                <div style={{ textAlign: "center" }}>
+                  <div
+                    style={{
+                      fontSize: "0.825rem",
+                      color: "var(--t3)",
+                      marginBottom: "0.375rem",
+                    }}
+                  >
+                    Financial metadata loaded
+                  </div>
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: "0.375rem",
+                      justifyContent: "center",
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    {[
+                      `Age ${metadata.age}`,
+                      `${metadata.life_stage} stage`,
+                      `${metadata.income_type.replace("_", "-")} income`,
+                      metadata.literacy_level,
+                    ].map((tag) => (
+                      <span key={tag} className="tag">
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: "0.5rem",
+                }}
+              >
+                {STARTERS.map(({ q, tag }) => (
+                  <button
+                    key={q}
+                    onClick={() => sendMessage(q)}
+                    disabled={!metadata}
+                    style={{
+                      background: "var(--bg-3)",
+                      border: "1px solid var(--b1)",
+                      borderRadius: "var(--r)",
+                      padding: "0.875rem",
+                      textAlign: "left",
+                      cursor: metadata ? "pointer" : "not-allowed",
+                      transition: "all 0.12s",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "0.375rem",
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontSize: "0.7rem",
+                        color: "var(--green)",
+                        fontWeight: 600,
+                        letterSpacing: "0.04em",
+                      }}
+                    >
+                      {tag}
+                    </span>
+                    <span
+                      style={{
+                        fontSize: "0.825rem",
+                        color: "var(--t1)",
+                        lineHeight: 1.5,
+                      }}
+                    >
+                      {q}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {history.map((msg, i) => (
+            <Bubble key={i} msg={msg} />
+          ))}
+
+          {streaming && content && <Bubble msg={{ role: "assistant", content }} streaming />}
+          {streaming && !content && (
+            <div
+              style={{
+                display: "flex",
+                gap: "0.375rem",
+                alignItems: "center",
+                padding: "0.25rem 0",
+              }}
+            >
+              {[0, 1, 2].map((i) => (
+                <div
+                  key={i}
+                  style={{
+                    width: 6,
+                    height: 6,
+                    borderRadius: "50%",
+                    background: "var(--green)",
+                    animation: "pulse 1.2s ease-in-out infinite",
+                    animationDelay: `${i * 0.18}s`,
+                  }}
+                />
+              ))}
+            </div>
+          )}
+
+          {!streaming && allCitations.length > 0 && (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "0.375rem" }}>
+              {(allCitations as { source: string }[]).map((c, i) => (
+                <span
+                  key={i}
                   style={{
                     background: "var(--bg-3)",
                     border: "1px solid var(--b1)",
-                    borderRadius: "var(--r)",
-                    padding: "0.875rem",
-                    textAlign: "left",
-                    cursor: metadata ? "pointer" : "not-allowed",
-                    transition: "all 0.12s",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "0.375rem",
-                  }}
-                  onMouseEnter={(e) => {
-                    if (metadata) {
-                      (e.currentTarget as HTMLElement).style.borderColor =
-                        "var(--b2)";
-                      (e.currentTarget as HTMLElement).style.background =
-                        "var(--bg-4)";
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    (e.currentTarget as HTMLElement).style.borderColor =
-                      "var(--b1)";
-                    (e.currentTarget as HTMLElement).style.background =
-                      "var(--bg-3)";
+                    borderRadius: "100px",
+                    padding: "0.2rem 0.625rem",
+                    fontSize: "0.68rem",
+                    color: "var(--t3)",
+                    fontWeight: 500,
                   }}
                 >
-                  <span
-                    style={{
-                      fontSize: "0.7rem",
-                      color: "var(--green)",
-                      fontWeight: 600,
-                      letterSpacing: "0.04em",
-                    }}
-                  >
-                    {tag}
-                  </span>
-                  <span
-                    style={{
-                      fontSize: "0.825rem",
-                      color: "var(--t1)",
-                      lineHeight: 1.5,
-                    }}
-                  >
-                    {q}
-                  </span>
-                </button>
+                  {c.source}
+                </span>
               ))}
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Chat messages */}
-        {history.map((msg, i) => (
-          <Bubble key={i} msg={msg} />
-        ))}
-
-        {/* Streaming */}
-        {streaming && content && (
-          <Bubble msg={{ role: "assistant", content }} streaming />
-        )}
-        {streaming && !content && (
-          <div
-            style={{
-              display: "flex",
-              gap: "0.375rem",
-              alignItems: "center",
-              padding: "0.25rem 0",
-            }}
-          >
-            {[0, 1, 2].map((i) => (
-              <div
-                key={i}
-                style={{
-                  width: 6,
-                  height: 6,
-                  borderRadius: "50%",
-                  background: "var(--green)",
-                  animation: "pulse 1.2s ease-in-out infinite",
-                  animationDelay: `${i * 0.18}s`,
-                }}
-              />
-            ))}
-          </div>
-        )}
-
-        {/* Citations */}
-        {!streaming && allCitations.length > 0 && (
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "0.375rem" }}>
-            {(allCitations as any[]).map((c: any, i: number) => (
-              <span
-                key={i}
-                style={{
-                  background: "var(--bg-3)",
-                  border: "1px solid var(--b1)",
-                  borderRadius: "100px",
-                  padding: "0.2rem 0.625rem",
-                  fontSize: "0.68rem",
-                  color: "var(--t3)",
-                  fontWeight: 500,
-                }}
-              >
-                📎 {c.source}
-              </span>
-            ))}
-          </div>
-        )}
-
-        <div ref={bottomRef} />
-      </div>
-
-      {/* Input */}
-      <div
-        style={{
-          flexShrink: 0,
-          paddingTop: "1rem",
-          borderTop: "1px solid var(--b1)",
-        }}
-      >
-        <div
-          style={{ display: "flex", gap: "0.625rem", alignItems: "flex-end" }}
-        >
-          <div style={{ flex: 1, position: "relative" }}>
-            <textarea
-              ref={inputRef}
-              className="input"
-              style={{
-                resize: "none",
-                height: 44,
-                maxHeight: 120,
-                lineHeight: 1.5,
-                padding: "0.625rem 0.75rem",
-                overflow: "hidden",
-              }}
-              placeholder={
-                metadata
-                  ? "Ask anything about your finances..."
-                  : "Complete onboarding first"
-              }
-              value={input}
-              onChange={(e) => {
-                setInput(e.target.value);
-                autoResize(e.target);
-              }}
-              onKeyDown={handleKey}
-              disabled={!metadata || streaming}
-              rows={1}
-            />
-          </div>
-          <button
-            className="btn btn-primary"
-            style={{ height: 44, minWidth: 72, flexShrink: 0 }}
-            onClick={() => sendMessage(input)}
-            disabled={!metadata || streaming || !input.trim()}
-          >
-            {streaming ? (
-              <div
-                style={{
-                  width: 14,
-                  height: 14,
-                  border: "2px solid rgba(4,26,12,0.3)",
-                  borderTop: "2px solid #041a0c",
-                  borderRadius: "50%",
-                  animation: "spin 0.6s linear infinite",
-                }}
-              />
-            ) : (
-              "Send"
-            )}
-          </button>
+          <div ref={bottomRef} />
         </div>
+
         <div
           style={{
-            fontSize: "0.68rem",
-            color: "var(--t4)",
-            marginTop: "0.375rem",
+            flexShrink: 0,
+            paddingTop: "1rem",
+            borderTop: "1px solid var(--b1)",
           }}
         >
-          Enter to send · Shift+Enter for new line
+          <div style={{ display: "flex", gap: "0.625rem", alignItems: "flex-end" }}>
+            <div style={{ flex: 1, position: "relative" }}>
+              <textarea
+                ref={inputRef}
+                className="input"
+                style={{
+                  resize: "none",
+                  height: 44,
+                  maxHeight: 120,
+                  lineHeight: 1.5,
+                  padding: "0.625rem 0.75rem",
+                  overflow: "hidden",
+                }}
+                placeholder={
+                  metadata
+                    ? "Ask anything about your finances..."
+                    : "Complete onboarding first"
+                }
+                value={input}
+                onChange={(e) => {
+                  setInput(e.target.value);
+                  autoResize(e.target);
+                }}
+                onKeyDown={handleKey}
+                disabled={!metadata || streaming}
+                rows={1}
+              />
+            </div>
+
+            <button
+              className="btn btn-primary"
+              style={{ height: 44, minWidth: 72, flexShrink: 0 }}
+              onClick={() => sendMessage(input)}
+              disabled={!metadata || streaming || !input.trim()}
+            >
+              {streaming ? "..." : "Send"}
+            </button>
+          </div>
+
+          <div
+            style={{
+              fontSize: "0.68rem",
+              color: "var(--t4)",
+              marginTop: "0.375rem",
+            }}
+          >
+            Enter to send · Shift+Enter for new line
+          </div>
         </div>
       </div>
     </div>
@@ -444,19 +670,20 @@ function FormattedText({
   content: string;
   isUser: boolean;
 }) {
-  // Render bold (**text**), citations ([Source]), and line breaks
   const parts = content.split(/(\*\*[^*]+\*\*|\[[^\]]+\]|\n)/g);
+
   return (
     <>
       {parts.map((part, i) => {
         if (part === "\n") return <br key={i} />;
-        if (part.startsWith("**") && part.endsWith("**"))
+        if (part.startsWith("**") && part.endsWith("**")) {
           return (
             <strong key={i} style={{ fontWeight: 600 }}>
               {part.slice(2, -2)}
             </strong>
           );
-        if (part.startsWith("[") && part.endsWith("]") && !isUser)
+        }
+        if (part.startsWith("[") && part.endsWith("]") && !isUser) {
           return (
             <span
               key={i}
@@ -470,6 +697,7 @@ function FormattedText({
               {part}
             </span>
           );
+        }
         return <span key={i}>{part}</span>;
       })}
     </>

@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException
-from models.schemas import StockRequest, StockData
+from models.schemas import StockRequest, StockData, FinancialMetadata
 from services.external_data import ( get_stock_quote, get_company_profile, get_basic_financials,)
 from core.clients import groq_client
 from core.config import get_settings
@@ -8,7 +8,7 @@ import asyncio
 router = APIRouter()
 settings = get_settings()
 
-async def _ai_stock_summary(ticker: str, profile: dict, financials: dict, quote: dict, metadata: None) -> str:
+async def _ai_stock_summary(ticker: str, profile: dict, financials: dict, quote: dict, metadata: FinancialMetadata) -> str:
     pe = financials.get("pe_ratio")
     div = financials.get("dividend_yield")
     beta = financials.get("beta")

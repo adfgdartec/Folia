@@ -1,7 +1,7 @@
 'use client'
 import { useEffect } from 'react'
 import { useRealtimeAlerts, useRealtimeNetWorth } from '@/lib/realtime/subscriptions'
-import { useToast } from '@/frontend/components/ui/Toast'
+import { useToast } from '@/components/ui/Toast'
 import { useFoliaStore } from '@/store'
 import { ALERT_PRIORITY_COLORS } from '@/lib/utils'
 

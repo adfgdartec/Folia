@@ -1,5 +1,5 @@
-import { Sidebar } from '@/frontend/components/layout/Sidebar'
-import { RealtimeManager } from '@/frontend/components/layout/RealtimeManager'
+import { Sidebar } from '@/components/layout/Sidebar'
+import { RealtimeManager } from '@/components/layout/RealtimeManager'
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (

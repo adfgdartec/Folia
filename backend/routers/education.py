@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 from typing import Optional
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from core.database import get_supabase
 import uuid
 
@@ -60,7 +60,7 @@ async def get_progress(user_id: str, track: Optional[str] = None):
         total = by_track[t]["total"]
         by_track[t]["percent"] = round(by_track[t]["completed"] / total * 100, 1) if total else 0
     
-    now = datetime.now(datetime.timezone.utc).isoformat()
+    now = datetime.now(timezone.utc).isoformat()
     due_review = [p for p in progress if p.get("next_review_at") and p["next_review_at"] <= now]
     
     return {
@@ -78,7 +78,7 @@ async def update_progress(body: ProgressUpdate):
         raise HTTPException(status_code=400, detail=f"Invalid status: {body.status}")
     
     supabase = get_supabase()
-    now = datetime.now(datetime.timezone.utc)
+    now = datetime.now(timezone.utc)
     interval = REVIEW_INTERVALS[body.status]
     next_review = (now + timedelta(days=interval)).isoformat() if interval else None
 
@@ -129,7 +129,7 @@ async def record_quiz_result(body: QuizResult):
         new_status = "in_progress"
     
     interval = REVIEW_INTERVALS[new_status]
-    now = datetime.now(datetime.timezone.utc)
+    now = datetime.now(timezone.utc)
     next_review = (now + timedelta(days=interval)).isoformat() if interval else None
     
     result = supabase.table("education_progress").update({
@@ -150,7 +150,7 @@ async def record_quiz_result(body: QuizResult):
 async def get_due_for_review(user_id: str):
     """Return all concepts due for spaced-repetition review today."""
     sb = get_supabase()
-    now = datetime.now(datetime.timezone.utc).isoformat()
+    now = datetime.now(timezone.utc).isoformat()
     result = sb.table("education_progress").select("*").eq("user_id", user_id).lte(
         "next_review_at", now
     ).execute()

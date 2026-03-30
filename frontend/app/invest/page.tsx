@@ -357,14 +357,14 @@ function StocksTab({ metadata }: { metadata: any }) {
                   </span>
                 </div>
               </div>
-              {result.market_cap && (
+              {/*result.market_cap && (
                 <div className="metric" style={{ minWidth: 120 }}>
                   <div className="metric-label">Market cap</div>
                   <div className="metric-value" style={{ fontSize: "1rem" }}>
                     {formatCurrency(result.market_cap, true)}
                   </div>
                 </div>
-              )}
+              )*/}
             </div>
             <div
               style={{

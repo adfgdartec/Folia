@@ -30,7 +30,7 @@ async def create_portfolio(body: PortfolioCreate):
     payload = {
         "id": str(uuid.uuid4()),
         "user_id": body.user_id,
-        "cash_balanace": body.starting_cash,
+        "cash_balance": body.starting_cash,
         "total_value": body.starting_cash,
     }
     result = supabase.table("paper_portfolios").insert(payload).execute()

@@ -1,9 +1,9 @@
 'use client'
-import { useState } from 'react'
-import { Modal } from '@/frontend/components/ui/Modal'
+import { useState, useEffect } from 'react'
+import { Modal } from '@/components/ui/Modal'
 import { assetsApi } from '@/lib/api/client'
 import { ASSET_TYPE_LABELS } from '@/lib/utils'
-import { useToast } from '@/frontend/components/ui/Toast'
+import { useToast } from '@/components/ui/Toast'
 import { useFoliaStore } from '@/store'
 import type { Asset, AssetType } from '@/types'
 
@@ -21,14 +21,25 @@ export function AssetForm({ open, onClose, onSaved, existing }: Props) {
   const { success, error } = useToast()
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState({
-    name:        existing?.name        ?? '',
-    value:       existing?.value       ?? 0,
-    type:        (existing?.type       ?? 'checking') as AssetType,
+    name: existing?.name ?? '',
+    value: existing?.value ?? 0,
+    type: (existing?.type ?? 'checking') as AssetType,
     institution: existing?.institution ?? '',
-    notes:       existing?.notes       ?? '',
+    notes: existing?.notes ?? '',
   })
 
-  const set = (k: keyof typeof form, v: unknown) => setForm((p) => ({ ...p, [k]: v }))
+  useEffect(() => {
+    setForm({
+      name: existing?.name ?? '',
+      value: existing?.value ?? 0,
+      type: (existing?.type ?? 'checking') as AssetType,
+      institution: existing?.institution ?? '',
+      notes: existing?.notes ?? '',
+    })
+  }, [existing, open])
+
+  const setField = (k: keyof typeof form, v: unknown) =>
+    setForm((p) => ({ ...p, [k]: v }))
 
   const save = async () => {
     if (!form.name || form.value < 0) return
@@ -41,10 +52,13 @@ export function AssetForm({ open, onClose, onSaved, existing }: Props) {
         await assetsApi.create({ ...form, user_id: userId })
         success('Asset added')
       }
-      onSaved(); onClose()
+      onSaved()
+      onClose()
     } catch (e: any) {
       error(e.message || 'Failed to save asset')
-    } finally { setSaving(false) }
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -54,32 +68,79 @@ export function AssetForm({ open, onClose, onSaved, existing }: Props) {
       title={existing ? 'Edit asset' : 'Add asset'}
       footer={
         <>
-          <button className="btn btn-secondary" onClick={onClose} disabled={saving}>Cancel</button>
-          <button className="btn btn-primary" onClick={save} disabled={saving || !form.name}>{saving ? 'Saving...' : 'Save'}</button>
+          <button type="button" className="btn btn-secondary" onClick={onClose} disabled={saving}>
+            Cancel
+          </button>
+          <button type="button" className="btn btn-primary" onClick={save} disabled={saving || !form.name}>
+            {saving ? 'Saving...' : 'Save'}
+          </button>
         </>
       }
     >
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <div
+        style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}
+        onClick={(e) => e.stopPropagation()}
+        onMouseDown={(e) => e.stopPropagation()}
+      >
         <div>
           <label className="label">Asset name</label>
-          <input className="input" placeholder="e.g. Chase Checking" value={form.name} onChange={(e) => set('name', e.target.value)} />
+          <input
+            className="input"
+            placeholder="e.g. Chase Checking"
+            value={form.name}
+            onChange={(e) => setField('name', e.target.value)}
+          />
         </div>
+
         <div>
           <label className="label">Type</label>
-          <select className="select" value={form.type} onChange={(e) => set('type', e.target.value as AssetType)}>
-            {ASSET_TYPES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+          <select
+            className="select"
+            value={form.type}
+            onChange={(e) => setField('type', e.target.value as AssetType)}
+          >
+            {ASSET_TYPES.map(([v, l]) => (
+              <option key={v} value={v}>
+                {l}
+              </option>
+            ))}
           </select>
         </div>
+
         <div>
           <label className="label">Current value</label>
           <div style={{ position: 'relative' }}>
-            <span style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--t3)' }}>$</span>
-            <input type="number" className="input" style={{ paddingLeft: '1.5rem' }} value={form.value} min={0} step={100} onChange={(e) => set('value', +e.target.value)} />
+            <span
+              style={{
+                position: 'absolute',
+                left: '0.75rem',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                color: 'var(--t3)',
+              }}
+            >
+              $
+            </span>
+            <input
+              type="number"
+              className="input"
+              style={{ paddingLeft: '1.5rem' }}
+              value={form.value}
+              min={0}
+              step={100}
+              onChange={(e) => setField('value', +e.target.value)}
+            />
           </div>
         </div>
+
         <div>
           <label className="label">Institution (optional)</label>
-          <input className="input" placeholder="e.g. Chase Bank" value={form.institution} onChange={(e) => set('institution', e.target.value)} />
+          <input
+            className="input"
+            placeholder="e.g. Chase Bank"
+            value={form.institution}
+            onChange={(e) => setField('institution', e.target.value)}
+          />
         </div>
       </div>
     </Modal>

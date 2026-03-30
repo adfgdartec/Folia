@@ -36,7 +36,7 @@ export default function SignUpPage() {
         </p>
       </div>
 
-      <SignUp />
+      <SignUp forceRedirectUrl="/dashboard"/>
     </div>
   )
 }
