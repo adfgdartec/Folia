@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-const BACKEND = process.env.PYTHON_BACKEND_URL || 'http://localhost:8000'
+const BACKEND = process.env.NEXT_PUBLIC_PYTHON_BACKEND_URL || 'http://localhost:8000'
 
 export async function proxyPost(req: NextRequest, path: string) {
   try {

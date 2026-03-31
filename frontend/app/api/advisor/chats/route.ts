@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 
-const BACKEND = process.env.PYTHON_BACKEND_URL || "http://localhost:8000";
+const BACKEND = process.env.NEXT_PUBLIC_PYTHON_BACKEND_URL || "http://localhost:8000";
 
 export async function GET() {
   const { getToken } = await auth();

@@ -121,7 +121,7 @@ In your Next.js app, proxy all AI calls through `/app/api/` routes:
 // app/api/advisor/route.ts
 export async function POST(req: NextRequest) {
   const body = await req.json()
-  const res = await fetch(`${process.env.PYTHON_BACKEND_URL}/api/advisor`, {
+  const res = await fetch(`${process.env.NEXT_PUBLIC_PYTHON_BACKEND_URL}/api/advisor`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
