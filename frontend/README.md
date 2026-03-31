@@ -81,7 +81,7 @@ NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
 
 # Production
-PYTHON_BACKEND_URL=https://folia-api.onrender.com  # Used by Next.js API proxy routes
+NEXT_PUBLIC_PYTHON_BACKEND_URL=https://folia-api.onrender.com  # Used by Next.js API proxy routes
 ```
 
 ## API proxy routes
@@ -97,7 +97,7 @@ Deploy to Vercel — it auto-detects Next.js and requires zero configuration:
 vercel --prod
 
 # Set environment variables in Vercel dashboard:
-# PYTHON_BACKEND_URL = your Render backend URL
+# NEXT_PUBLIC_PYTHON_BACKEND_URL = your Render backend URL
 # NEXT_PUBLIC_SUPABASE_URL = your Supabase URL
 # NEXT_PUBLIC_SUPABASE_ANON_KEY = your Supabase anon key
 ```

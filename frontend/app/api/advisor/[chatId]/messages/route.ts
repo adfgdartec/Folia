@@ -3,7 +3,11 @@ import { auth } from "@clerk/nextjs/server";
 
 const BACKEND = process.env.NEXT_PUBLIC_PYTHON_BACKEND_URL || "http://localhost:8000";
 
-export async function POST(req: NextRequest) {
+export async function POST(
+  req: NextRequest,
+  { params }: { params: Promise<{ chatId: string }> }
+) {
+  const { chatId } = await params;
   const body = await req.json();
 
   const { getToken } = await auth();
@@ -13,7 +17,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ detail: "Not authenticated" }, { status: 401 });
   }
 
-  const res = await fetch(`${BACKEND}/api/advisor/stream`, {
+  const res = await fetch(`${BACKEND}/api/advisor/chats/${chatId}/messages`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -22,19 +26,12 @@ export async function POST(req: NextRequest) {
     body: JSON.stringify(body),
   });
 
-  if (!res.ok) {
-    const text = await res.text();
-    return NextResponse.json(
-      { detail: text || "Advisor request failed" },
-      { status: res.status }
-    );
-  }
+  const text = await res.text();
 
-  return new NextResponse(res.body, {
+  return new NextResponse(text, {
+    status: res.status,
     headers: {
-      "Content-Type": "text/plain; charset=utf-8",
-      "X-Accel-Buffering": "no",
-      "Cache-Control": "no-cache",
+      "Content-Type": res.headers.get("content-type") || "application/json",
     },
   });
 }

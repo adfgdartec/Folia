@@ -31,7 +31,7 @@ import {
   OrderSide,
 } from "@/types";
 
-const API_URL = process.env.PYTHON_BACKEND_URL || "http://localhost:8000";
+const API_URL = process.env.NEXT_PUBLIC_PYTHON_BACKEND_URL || "http://localhost:8000";
 
 class ApiError extends Error {
   constructor(
