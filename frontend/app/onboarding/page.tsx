@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useFoliaStore } from "@/store";
 import { usersApi } from "@/lib/api/client";
@@ -97,8 +97,21 @@ export default function OnboardingPage() {
   const setMetadata = useFoliaStore((s) => s.setMetadata);
   const setProfile = useFoliaStore((s) => s.setProfile);
   const userId = useFoliaStore((s) => s.userId);
+  const isOnboarded = useFoliaStore((s) => s.isOnboarded);
+  const profile = useFoliaStore((s) => s.profile);
   const [step, setStep] = useState(0);
   const [saving, setSaving] = useState(false);
+  const [hasCheckedOnboarding, setHasCheckedOnboarding] = useState(false);
+  
+  // Redirect if user has already completed onboarding
+  useEffect(() => {
+    if (isOnboarded && profile?.onboarding_done) {
+      router.replace('/dashboard');
+      return;
+    }
+    setHasCheckedOnboarding(true);
+  }, [isOnboarded, profile, router]);
+  
   const [form, setForm] = useState({
     age: 28,
     income_type: "w2" as IncomeType,
@@ -170,6 +183,27 @@ export default function OnboardingPage() {
 
   const next = () => (step < STEPS.length - 1 ? setStep(step + 1) : finish());
   const back = () => step > 0 && setStep(step - 1);
+
+  // Show loading while checking onboarding status
+  if (!hasCheckedOnboarding) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'var(--bg)',
+      }}>
+        <div style={{
+          width: 28, height: 28,
+          border: '2px solid var(--bg-5)',
+          borderTop: '2px solid var(--green)',
+          borderRadius: '50%',
+          animation: 'spin 0.8s linear infinite',
+        }} />
+      </div>
+    );
+  }
 
   const savingsRate =
     form.annual_income > 0
