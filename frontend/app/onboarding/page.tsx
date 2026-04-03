@@ -155,8 +155,11 @@ export default function OnboardingPage() {
         })),
       };
       await usersApi.upsertMetadata(userId, metadata);
-      await usersApi.updateProfile(userId, { onboarding_done: true });
+      const updatedProfile = await usersApi.updateProfile(userId, {
+        onboarding_done: true,
+      });
       setMetadata(metadata);
+      setProfile(updatedProfile);
       router.push("/dashboard");
     } catch (e) {
       console.error(e);
@@ -202,28 +205,7 @@ export default function OnboardingPage() {
               marginBottom: 6,
             }}
           >
-            <div
-              style={{
-                width: 36,
-                height: 36,
-                background:
-                  "linear-gradient(135deg, var(--green) 0%, var(--green2) 100%)",
-                borderRadius: 10,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <svg width="18" height="18" viewBox="0 0 16 16" fill="none">
-                <path
-                  d="M3 13C3 10 5 8 8 8C11 8 13 6 13 3"
-                  stroke="white"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                />
-                <circle cx="8" cy="8" r="1.5" fill="white" />
-              </svg>
-            </div>
+            <img src="/favicon.ico" alt="Folia" style={{ width: 36, height: 36, borderRadius: 10 }} />
             <span
               style={{
                 fontSize: "1.4rem",

@@ -771,6 +771,7 @@ function DebtsTab() {
               margin: "1rem",
               boxShadow: "0 24px 64px rgba(0,0,0,0.6)",
             }}
+            onPointerDown={(e) => e.stopPropagation()}
             onClick={(e) => e.stopPropagation()}
             onMouseDown={(e) => e.stopPropagation()}
           >
@@ -1108,6 +1109,7 @@ function GoalsTab() {
               margin: "1rem",
               boxShadow: "0 24px 64px rgba(0,0,0,0.6)",
             }}
+            onPointerDown={(e) => e.stopPropagation()}
             onClick={(e) => e.stopPropagation()}
             onMouseDown={(e) => e.stopPropagation()}
           >

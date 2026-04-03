@@ -49,6 +49,17 @@ async def list_templates(life_stage: Optional[str] = None, simulation_type: Opti
     result = query.order("upvotes", desc=True).limit(limit).execute()
     return {"templates": result.data or []}
 
+@router.get("/shared")
+async def list_shared_scenarios(life_stage: Optional[str] = None, simulation_type: Optional[str] = None, limit: int = Query(default=20, le=50),):
+    supabase = get_supabase()
+    query = supabase.table("community_scenarios").select("*").eq("is_template", False)
+    if life_stage:
+        query = query.eq("life_stage", life_stage)
+    if simulation_type:
+        query = query.eq("simulation_type", simulation_type)
+    result = query.order("upvotes", desc=True).limit(limit).execute()
+    return {"scenarios": result.data or []}
+
 @router.get("/benchmarks")
 async def get_benchmarks(life_stage: str, simulation_type: Optional[str] = None, limit: int = 100,):
     supabase = get_supabase()

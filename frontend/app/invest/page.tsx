@@ -5,6 +5,7 @@ import { stocksApi, paperTradingApi, macroApi } from "@/lib/api/client";
 import { usePaperPortfolio, useMacroIndicators } from "@/hooks";
 import { useToast } from "@/components/ui/Toast";
 import { formatCurrency } from "@/lib/utils";
+import { NetWorthChart, DonutChart } from "@/components/charts";
 import type { StockData } from "@/types";
 
 type Tab = "stocks" | "portfolio" | "macro" | "etf" | "crypto";
@@ -680,6 +681,33 @@ function PortfolioTab({ userId }: { userId: string }) {
   }
 
   const totalReturn = port.total_return_percent ?? 0;
+
+  const dailyValues =
+    port.portfolio?.daily_values?.map((p: any) => ({
+      snapshot_date: p.date,
+      net_worth: p.value,
+      total_assets: p.value,
+      total_debts: 0,
+    })) ??
+    [{
+      snapshot_date: new Date().toISOString().slice(0, 10),
+      net_worth: port.total_value,
+      total_assets: (port.total_value - port.cash_balance) > 0 ? (port.total_value - port.cash_balance) : 0,
+      total_debts: 0,
+    }];
+
+  const sectorData =
+    (port.holdings || []).reduce((acc: any[], h: any) => {
+      const sector = h.sector || "Other";
+      const item = acc.find((s) => s.name === sector);
+      const value = h.market_value || 0;
+      if (item) item.value += value;
+      else acc.push({ name: sector, value });
+      return acc;
+    }, []) || [];
+
+  const chartData = sectorData.length > 0 ? sectorData : [{ name: "Cash", value: port.cash_balance }];
+
   return (
     <div
       className="stagger"
@@ -752,6 +780,21 @@ function PortfolioTab({ userId }: { userId: string }) {
               Sell
             </button>
           </div>
+          {port.holdings && port.holdings.length > 0 && (
+            <select
+              className="input"
+              style={{ width: 120 }}
+              onChange={(e) => setTicker(e.target.value)}
+              value=""
+            >
+              <option value="">Select owned</option>
+              {port.holdings.map((h: any) => (
+                <option key={h.ticker} value={h.ticker}>
+                  {h.ticker} ({h.shares.toFixed(2)} shares)
+                </option>
+              ))}
+            </select>
+          )}
           <input
             className="input"
             style={{ width: 90 }}

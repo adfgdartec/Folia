@@ -26,8 +26,6 @@ export function Modal({ open, onClose, title, children, width = 480, footer }: M
   return (
     <div
       ref={overlayRef}
-      onPointerDown={(e) => { if (e.target === overlayRef.current) onClose() }}
-      onClick={(e) => { if (e.target === overlayRef.current) onClose() }}
       style={{
         position: 'fixed', inset: 0, zIndex: 200,
         background: 'rgba(5, 8, 12, 0.75)',
@@ -39,6 +37,7 @@ export function Modal({ open, onClose, title, children, width = 480, footer }: M
     >
       <div
         onPointerDown={(e) => e.stopPropagation()}
+        onPointerUp={(e) => e.stopPropagation()}
         onClick={(e) => e.stopPropagation()}
         style={{
           background: 'var(--bg-2)',

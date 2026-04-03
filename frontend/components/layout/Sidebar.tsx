@@ -67,18 +67,7 @@ export function Sidebar() {
       {/* Logo */}
       <div style={{ padding: '1.25rem 1rem 0.875rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <div style={{
-            width: 28, height: 28,
-            background: 'linear-gradient(135deg, #22d47e 0%, #0d9e57 100%)',
-            borderRadius: '7px',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            flexShrink: 0,
-          }}>
-            <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-              <path d="M3 13 C3 10 5 8 8 8 C11 8 13 6 13 3" stroke="white" strokeWidth="2" strokeLinecap="round"/>
-              <circle cx="8" cy="8" r="1.5" fill="white"/>
-            </svg>
-          </div>
+          <img src="/favicon.ico" alt="Folia" style={{ width: 28, height: 28, borderRadius: 7 }} />
           <span style={{ fontSize: '0.925rem', fontWeight: 700, color: 'var(--t1)', letterSpacing: '-0.02em' }}>
             Folia
           </span>

@@ -7,12 +7,10 @@ import { useToast } from "@/components/ui/Toast";
 
 interface Template {
   id: string;
-  template_title: string;
-  template_desc: string;
   life_stage: string;
   simulation_type: string;
+  outcome_data: Record<string, unknown>;
   upvotes: number;
-  scenario_data: Record<string, unknown>;
 }
 
 interface Benchmarks {
@@ -60,13 +58,10 @@ export default function CommunityPage() {
       setLoading(true);
       try {
         const [t, b] = await Promise.all([
-          communityApi.listTemplates(stage),
+          communityApi.listSharedScenarios(stage),
           communityApi.getBenchmarks(stage),
         ]);
-        setTemplates((t.templates ?? []).map((template: any) => ({
-          ...template,
-          template_title: template.template_title || "",
-        })));
+        setTemplates(t.scenarios ?? []);
         setBenchmarks(b);
       } catch {
       } finally {
@@ -451,9 +446,6 @@ export default function CommunityPage() {
                         color: "var(--t1)",
                       }}
                     >
-                      {t.template_title}
-                    </span>
-                    <span className="badge badge-gray">
                       {SIM_LABELS[t.simulation_type] ?? t.simulation_type}
                     </span>
                     <span
@@ -467,17 +459,15 @@ export default function CommunityPage() {
                       {t.life_stage}
                     </span>
                   </div>
-                  {t.template_desc && (
-                    <p
-                      style={{
-                        fontSize: "0.775rem",
-                        color: "var(--t3)",
-                        lineHeight: 1.5,
-                      }}
-                    >
-                      {t.template_desc}
-                    </p>
-                  )}
+                  <p
+                    style={{
+                      fontSize: "0.775rem",
+                      color: "var(--t3)",
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    Net worth: {formatCurrency(t.outcome_data?.net_worth as number || 0, true)}
+                  </p>
                 </div>
                 <button
                   onClick={() => handleUpvote(t.id)}

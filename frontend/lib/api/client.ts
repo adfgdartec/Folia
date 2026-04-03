@@ -554,4 +554,12 @@ export const communityApi = {
   contribute: (body: unknown) =>
     post<CommunityScenario>("/api/community/contribute", body),
   upvote: (scenarioId: string) => post(`/api/community/${scenarioId}/upvote`),
+  listSharedScenarios: (lifeStage?: string, simType?: string) => {
+    const qs = new URLSearchParams();
+    if (lifeStage) qs.set("life_stage", lifeStage);
+    if (simType) qs.set("simulation_type", simType);
+    return get<{ scenarios: CommunityScenario[] }>(
+      `/api/community/shared${qs.toString() ? "?" + qs : ""}`,
+    );
+  },
 };

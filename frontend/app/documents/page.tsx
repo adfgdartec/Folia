@@ -8,47 +8,40 @@ const DOC_TYPES: {
   value: DocType;
   label: string;
   desc: string;
-  icon: string;
 }[] = [
-  { value: "pay_stub", label: "Pay Stub", desc: "Recent paycheck", icon: "💰" },
-  { value: "w2", label: "W-2", desc: "Annual wage statement", icon: "📋" },
+  { value: "pay_stub", label: "Pay Stub", desc: "Recent paycheck", },
+  { value: "w2", label: "W-2", desc: "Annual wage statement",},
   {
     value: "bank_statement",
     label: "Bank Statement",
     desc: "Monthly account",
-    icon: "🏦",
   },
   {
     value: "credit_card_statement",
     label: "Credit Card",
     desc: "Monthly card statement",
-    icon: "💳",
   },
   {
     value: "brokerage_statement",
     label: "Brokerage",
     desc: "Investment account",
-    icon: "📈",
   },
   {
     value: "financial_aid_letter",
     label: "Financial Aid",
     desc: "College award letter",
-    icon: "🎓",
   },
   {
     value: "tax_return",
     label: "Tax Return",
     desc: "1040 or state return",
-    icon: "📄",
   },
   {
     value: "insurance_policy",
     label: "Insurance Policy",
     desc: "Any insurance doc",
-    icon: "🛡️",
   },
-  { value: "other", label: "Other", desc: "Any financial doc", icon: "📁" },
+  { value: "other", label: "Other", desc: "Any financial doc", },
 ];
 
 export default function DocumentsPage() {

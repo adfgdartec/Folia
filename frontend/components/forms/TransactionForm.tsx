@@ -59,6 +59,7 @@ export function TransactionForm({ open, onClose, onSaved }: Props) {
     >
       <div
         style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}
+        onPointerDown={(e) => e.stopPropagation()}
         onClick={(e) => e.stopPropagation()}
         onMouseDown={(e) => e.stopPropagation()}
       >
