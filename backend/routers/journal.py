@@ -86,6 +86,41 @@ async def log_outcome(entry_id: str, body: OutcomeLog):
         raise HTTPException(status_code=404, detail="Entry not found")
     return result.data[0]
 
+@router.post("/auto-log-trade")
+async def auto_log_trade(
+    user_id: str,
+    portfolio_id: str,
+    trade_id: str,
+    ticker: str,
+    side: str,
+    shares: float,
+    price: float,
+    reasoning: str = None,
+):
+    supabase = get_supabase()
+    decision = f"Auto-log trade: {side} {shares} {ticker} at {price}."
+    ai_insights = (
+        "Auto-generated AI review: Align position sizing with total portfolio risk; "
+        "track macro and earnings catalysts; evaluate exit triggers based on risk/reward"
+    )
+    payload = {
+        "id": str(uuid.uuid4()),
+        "user_id": user_id,
+        "portfolio_id": portfolio_id,
+        "trade_id": trade_id,
+        "decision": decision,
+        "reasoning": reasoning,
+        "ai_insights": ai_insights,
+        "learnings": {"next_steps": ["Re-evaluate after 5% move", "Set stop-loss according to capital plan"]},
+        "confidence_score": 0.9,
+        "decision_date": datetime.utcnow().date().isoformat(),
+    }
+    result = supabase.table("decision_journal").insert(payload).execute()
+    if not result.data:
+        raise HTTPException(status_code=500, detail="Failed to auto-log trade")
+    return result.data[0]
+
+
 @router.delete("/{entry_id}")
 async def delete_entry(entry_id: str):
     supabase = get_supabase()

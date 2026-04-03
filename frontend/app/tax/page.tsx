@@ -482,6 +482,23 @@ function BracketsTab({ metadata }: { metadata: any }) {
     ];
   const taxable = Math.max(0, income - std_ded);
 
+  // Calculate bracket breakdown
+  const bracket_breakdown = [];
+  let prev_limit = 0;
+  for (const bracket of BRACKETS_SINGLE_2024) {
+    if (taxable <= prev_limit) break;
+    const in_bracket = Math.min(taxable, bracket.max === Infinity ? taxable : bracket.max) - prev_limit;
+    const tax_here = in_bracket * (bracket.rate / 100);
+    if (in_bracket > 0) {
+      bracket_breakdown.push({
+        rate: bracket.rate,
+        taxable_amount: in_bracket,
+        tax: tax_here,
+      });
+    }
+    prev_limit = bracket.max;
+  }
+
   return (
     <div
       className="stagger"
@@ -490,6 +507,9 @@ function BracketsTab({ metadata }: { metadata: any }) {
       <div className="card">
         <div className="section-title" style={{ marginBottom: "1rem" }}>
           2024 Federal Tax Brackets (Single)
+        </div>
+        <div style={{ marginBottom: "1.5rem" }}>
+          <BracketChart brackets={bracket_breakdown} height={180} />
         </div>
         <table className="table">
           <thead>

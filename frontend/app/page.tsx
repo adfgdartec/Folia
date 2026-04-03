@@ -1,15 +1,18 @@
 'use client'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useUser } from '@clerk/nextjs'
 import { useFoliaStore } from '@/store'
+import { usersApi } from '@/lib/api/client'
 
 export default function RootPage() {
-  const router      = useRouter()
+  const router = useRouter()
   const { user, isLoaded, isSignedIn } = useUser()
   const isOnboarded = useFoliaStore((s) => s.isOnboarded)
-  const userId      = useFoliaStore((s) => s.userId)
-  const setUserId   = useFoliaStore((s) => s.setUserId)
+  const userId = useFoliaStore((s) => s.userId)
+  const setUserId = useFoliaStore((s) => s.setUserId)
+  const setProfile = useFoliaStore((s) => s.setProfile)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     if (!isLoaded) return
@@ -23,13 +26,34 @@ export default function RootPage() {
       setUserId(user.id)
     }
 
+    const loadProfile = async () => {
+      if (!user?.id) return
+      try {
+        const profile = await usersApi.getProfile(user.id)
+        setProfile(profile)
+      } catch (error: any) {
+        if (error?.status === 404) {
+          // New user: onboarding will be shown, but we also can create an empty profile now
+          const created = await usersApi.updateProfile(user.id, { onboarding_done: false })
+          setProfile(created)
+        }
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadProfile()
+  }, [isLoaded, isSignedIn, user, userId, setProfile, setUserId, router])
+
+  useEffect(() => {
+    if (!isLoaded || loading) return
 
     if (isOnboarded) {
       router.replace('/dashboard')
     } else {
       router.replace('/onboarding')
     }
-  }, [isLoaded, isSignedIn, user, isOnboarded, userId, setUserId, router])
+  }, [isLoaded, loading, isOnboarded, router])
 
   return (
     
